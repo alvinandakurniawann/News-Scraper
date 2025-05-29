@@ -1,4 +1,4 @@
-# Text Scraper
+# News Scraper
 
 A Streamlit-based web application for extracting and analyzing news from various Indonesian online news sources.
 

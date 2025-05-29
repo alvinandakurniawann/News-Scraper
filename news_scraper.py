@@ -379,7 +379,7 @@ def main():
             # Show content preview
             st.subheader("📄 Preview Konten:")
             with st.expander("Lihat konten lengkap"):
-                st.text_area("", data['content'], height=200, disabled=True)
+                st.text_area("Konten Berita", data['content'], height=200, disabled=True, label_visibility="collapsed")
     
     # Preprocessing section
     if st.session_state.extracted_data and st.session_state.extracted_data['success']:
@@ -402,7 +402,7 @@ def main():
         with col4:
             if st.session_state.preprocessed_text:
                 st.subheader("📝 Hasil Preprocessing:")
-                st.text_area("", st.session_state.preprocessed_text, height=200, disabled=True)
+                st.text_area("Hasil Preprocessing", st.session_state.preprocessed_text, height=200, disabled=True, label_visibility="collapsed")
                 
                 # Statistics
                 st.subheader("📊 Statistik:")

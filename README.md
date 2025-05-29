@@ -1,4 +1,4 @@
-News Scraper
+# News Scraper
 
 A Streamlit-based web application for extracting and analyzing news from various Indonesian online news sources.
 
@@ -81,3 +81,4 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 ## License
 
 [MIT License](LICENSE)
+   

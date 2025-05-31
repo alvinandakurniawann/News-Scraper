@@ -28,25 +28,46 @@ news-scraper-project/
 
 ## 🚀 Cara Menjalankan
 
-### Quick Setup (Recommended)
+### Local Development
 
-Gunakan script setup otomatis sesuai sistem operasi:
+1. Clone repository ini
+2. Buat environment virtual:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   .\venv\Scripts\activate  # Windows
+   ```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Download NLTK data:
+   ```
+   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+   ```
+5. Jalankan aplikasi:
+   ```
+   streamlit run main.py
+   ```
 
-**Windows:**
-```bash
-setup.bat
-```
+### Deployment ke Streamlit Cloud
 
-**Linux/Mac:**
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+1. Buat akun di [Streamlit Cloud](https://share.streamlit.io/)
+2. Hubungkan ke repository GitHub Anda
+3. Pilih repository ini
+4. Atur pengaturan deployment:
+   - Branch: `main`
+   - Main file path: `main.py`
+5. Klik Deploy
 
-**Python (All platforms):**
-```bash
-python setup.py
-```
+### Deployment ke Platform Lain
+
+Untuk deployment ke platform seperti Heroku, Railway, atau Vercel, pastikan:
+
+1. File `requirements.txt` sudah ada
+2. File `runtime.txt` sudah berisi versi Python
+3. File `Procfile` sudah dikonfigurasi dengan benar
+4. Variabel environment sudah diset (khusus untuk Supabase)
 
 ### Manual Setup
 

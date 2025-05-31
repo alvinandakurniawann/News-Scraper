@@ -25,4 +25,4 @@ python-dotenv>=1.0.0
 
 # Deep Learning (for LSTM)
 numpy==1.26.4
-tensorflow==2.10.0
+tensorflow>=2.15.0

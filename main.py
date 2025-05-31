@@ -348,7 +348,7 @@ Content:
 
 URL: {data.get('url', '')}"""
                 st.session_state.copied_text = text_to_copy
-                st.experimental_rerun()
+                st.rerun()
         
         if 'copied_text' in st.session_state:
             st.success("✅ Text copied to clipboard!")

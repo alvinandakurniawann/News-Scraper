@@ -8,6 +8,7 @@ import string
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
 # Download NLTK data
@@ -17,9 +18,13 @@ try:
 except Exception as e:
     print(f"Error downloading NLTK data: {str(e)}")
 
-# Initialize Indonesian stemmer
+# Initialize stemmers
+# Indonesian stemmer
 factory = StemmerFactory()
-stemmer = factory.create_stemmer()
+id_stemmer = factory.create_stemmer()
+
+# English stemmer
+en_stemmer = PorterStemmer()
 
 
 class TextPreprocessor:
@@ -72,12 +77,34 @@ class TextPreprocessor:
         """Remove stopwords"""
         return [token for token in tokens if token not in self.stop_words]
     
-    def stem_text(self, tokens):
-        """Stem tokens"""
-        return [stemmer.stem(token) for token in tokens]
+    def stem_text(self, tokens, language='indonesian'):
+        """
+        Stem tokens based on specified language
+        
+        Args:
+            tokens (list): List of tokens to be stemmed
+            language (str): Language for stemming ('indonesian' or 'english')
+            
+        Returns:
+            list: List of stemmed tokens
+        """
+        if language.lower() == 'english':
+            return [en_stemmer.stem(token) for token in tokens]
+        else:  # Default to Indonesian
+            return [id_stemmer.stem(token) for token in tokens]
     
-    def preprocess_pipeline(self, text, steps):
-        """Run preprocessing pipeline based on selected steps"""
+    def preprocess_pipeline(self, text, steps, language='indonesian'):
+        """
+        Run preprocessing pipeline based on selected steps
+        
+        Args:
+            text (str): Input text to preprocess
+            steps (list): List of preprocessing steps to apply
+            language (str): Language for language-specific processing ('indonesian' or 'english')
+            
+        Returns:
+            str: Preprocessed text
+        """
         result = text
         tokens = None
         
@@ -92,11 +119,18 @@ class TextPreprocessor:
             result = tokens
         
         if 'stopwords' in steps and tokens is not None:
+            # Load appropriate stopwords based on language
+            if language.lower() == 'english':
+                self.stop_words = set(stopwords.words('english'))
+            else:  # Default to Indonesian
+                self.stop_words = set(stopwords.words('indonesian'))
+                self.stop_words.update(['yang', 'untuk', 'pada', 'ke', 'di', 'dari', 'ini', 'itu', 'dengan', 'adalah', 'tersebut'])
+            
             tokens = self.remove_stopwords(tokens)
             result = tokens
         
         if 'stem' in steps and tokens is not None:
-            tokens = self.stem_text(tokens)
+            tokens = self.stem_text(tokens, language=language)
             result = tokens
         
         # Convert back to string if tokens

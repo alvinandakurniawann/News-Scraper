@@ -75,8 +75,18 @@ class Config:
                     "name": "TF-IDF + Logistic Regression",
                     "path": os.path.join(base_dir, "models", "tfidf", "tfidf_logreg_tuned_pipeline.joblib"),
                     "type": "tfidf"
+                },
+                {
+                    "name": "BERT + Logistic Regression",
+                    "path": os.path.join(base_dir, "models", "bert+logreg", "logreg_tuned_bert_maxlen512.joblib"),
+                    "type": "bert+logreg"
+                },
+                {
+                    "name": "TF-IDF + LSTM",
+                    "vectorizer_path": os.path.join(base_dir, "models", "tfidf_lstm", "tfidf_vectorizer_for_lstm.joblib"),
+                    "model_path": os.path.join(base_dir, "models", "tfidf_lstm", "tfidf_lstm_model.keras"),
+                    "type": "tfidf_lstm"
                 }
-                # Add more models here in the future
             ],
             "confidence_threshold": 0.7,
             "max_text_length": 5000

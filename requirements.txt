@@ -22,3 +22,6 @@ plotly-express>=0.4.1
 # Database (optional)
 supabase>=2.0.0
 python-dotenv>=1.0.0
+
+# Deep Learning (for LSTM)
+tensorflow

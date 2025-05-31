@@ -692,18 +692,6 @@ def display_analytics(history_df):
     # Convert checked_at to datetime
     history_df['checked_at'] = pd.to_datetime(history_df['checked_at'])
     
-    # Time series analysis
-    st.subheader("Checks Over Time")
-    
-    daily_checks = history_df.groupby(history_df['checked_at'].dt.date).size()
-    fig_timeline = px.line(
-        x=daily_checks.index,
-        y=daily_checks.values,
-        labels={'x': 'Date', 'y': 'Number of Checks'},
-        title='Daily News Checks'
-    )
-    st.plotly_chart(fig_timeline, use_container_width=True)
-    
     # Prediction distribution
     col1, col2 = st.columns(2)
     

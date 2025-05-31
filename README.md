@@ -1,84 +1,145 @@
-# News Scraper
+# News Scraper & Fake News Detector
 
-A Streamlit-based web application for extracting and analyzing news from various online news sources.
+Aplikasi web untuk scraping berita dari berbagai situs Indonesia dan deteksi fake news menggunakan machine learning.
 
-## Features
+## 📁 Struktur Project
 
-- News extraction from various popular Indonesian news websites
-- Automatic text cleaning and preprocessing
-- Basic text analysis (tokenization, stopword removal, stemming)
-- Export extraction results in JSON format
-- User-friendly interface
+```
+news-scraper-project/
+│
+├── main.py                    # Main Streamlit application (entry point)
+├── news_extractor.py          # Module untuk ekstraksi berita
+├── text_preprocessor.py       # Module untuk preprocessing teks
+├── fake_news_detector.py      # Module untuk deteksi fake news
+├── database_supabase.py       # Module untuk manajemen database Supabase
+├── config.py                  # Module untuk konfigurasi aplikasi
+├── visualizations.py          # Module untuk visualisasi data
+├── utils.py                   # Module untuk utility functions
+├── requirements.txt           # Daftar dependencies
+├── SUPABASE_SETUP.md         # Panduan setup Supabase
+├── README.md                 # File ini
+├── setup.py                  # Script setup Python
+├── setup.sh                  # Script setup Unix/Linux
+├── setup.bat                 # Script setup Windows
+├── .gitignore               # File git ignore
+└── .streamlit/
+    └── secrets.toml.example  # Template untuk kredensial Supabase
+```
 
-## Supported News Websites
+## 🚀 Cara Menjalankan
 
-- Detik.com
-- Kompas.com
-- Tribunnews.com
+### Quick Setup (Recommended)
 
-## System Requirements
+Gunakan script setup otomatis sesuai sistem operasi:
 
-- Python 3.7+
-- pip (Python package manager)
+**Windows:**
+```bash
+setup.bat
+```
 
-## Installation
+**Linux/Mac:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
-1. Clone this repository:
+**Python (All platforms):**
+```bash
+python setup.py
+```
+
+### Manual Setup
+
+1. **Setup Supabase**
+
+   Ikuti panduan lengkap di [SUPABASE_SETUP.md](SUPABASE_SETUP.md) untuk:
+   - Membuat akun dan project Supabase
+   - Membuat tabel database
+   - Mendapatkan kredensial
+
+2. **Konfigurasi Aplikasi**
+
    ```bash
-   git clone [REPOSITORY_URL]
-   cd text-scraper-complete
+   mkdir .streamlit
+   cp .streamlit/secrets.toml.example .streamlit/secrets.toml
    ```
 
-2. Create and activate a virtual environment (recommended):
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate  # Windows
-   # or
-   source venv/bin/activate  # Linux/Mac
+   Edit `.streamlit/secrets.toml` dengan kredensial Supabase Anda:
+   ```toml
+   SUPABASE_URL = "https://your-project.supabase.co"
+   SUPABASE_KEY = "your-anon-public-key"
    ```
 
-3. Install dependencies:
+3. **Install Dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
-   If requirements.txt is not available, install packages manually:
-   ```bash
-   pip install streamlit beautifulsoup4 requests nltk sastrawi pandas
+4. **Download NLTK Data**
+
+   ```python
+   import nltk
+   nltk.download('punkt')
+   nltk.download('stopwords')
    ```
 
-4. Download required NLTK data:
+5. **Jalankan Aplikasi**
+
    ```bash
-   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+   streamlit run main.py
    ```
 
-## Usage
+## 📋 Fitur Utama
 
-1. Run the Streamlit application:
-   ```bash
-   streamlit run news_scraper.py
-   ```
+- **News Extraction**: Ekstraksi otomatis dari Detik, Kompas, Tribun, CNN Indonesia, Liputan6
+- **Text Preprocessing**: Cleaning, tokenization, stopword removal, stemming
+- **Fake News Detection**: Deteksi fake news dengan confidence score
+- **Batch Processing**: Proses multiple URLs sekaligus
+- **Cloud Database**: Menggunakan Supabase PostgreSQL
+- **History Tracking**: Riwayat checking tersimpan di cloud
+- **Analytics Dashboard**: Visualisasi statistik dan trend
+- **Search & Filter**: Cari dan filter hasil berdasarkan domain, prediksi, dll
 
-2. Open your browser and navigate to the displayed URL (usually http://localhost:8501)
+## 🔧 Konfigurasi
 
-3. Enter the news URL you want to extract
+### Preprocessing Steps:
+- `clean`: Membersihkan teks (lowercase, hapus URL, email, dll)
+- `punctuation`: Menghapus tanda baca
+- `tokenize`: Memecah teks menjadi kata-kata
+- `stopwords`: Menghapus kata-kata umum
+- `stem`: Mengubah kata ke bentuk dasar
 
-4. Select desired preprocessing options:
-   - Text cleaning
-   - Punctuation removal
-   - Tokenization
-   - Stopword removal
-   - Stemming
+### Model Types :
+- TF-IDF + LSTM
+- BERT + LogReg
+- RoBERTa + GRU
 
-5. Click the "Extract News" button to process the URL
+## 🌐 Keuntungan Menggunakan Supabase
 
-6. Use the "Download JSON" button to save the extraction results
+1. **Cloud-Based**: Data tersimpan di cloud, bisa diakses dari mana saja
+2. **Scalable**: Otomatis scale sesuai kebutuhan
+3. **Realtime**: Support realtime updates (optional)
+4. **Secure**: Built-in authentication dan Row Level Security
+5. **Free Tier**: Gratis untuk project kecil-menengah
+6. **PostgreSQL**: Database powerful dengan fitur lengkap
 
-## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue to report bugs or request new features.
+## 🛡️ Security
 
-## License
+- Jangan pernah commit file `.streamlit/secrets.toml`
+- Gunakan environment variables untuk production
+- Enable Row Level Security di Supabase untuk keamanan ekstra
 
-[MIT License](LICENSE)
-   
+## 🤝 Kontribusi
+
+Feel free to contribute dengan:
+- Menambahkan support untuk situs berita lain
+- Implementasi model ML yang real
+- Perbaikan UI/UX
+- Optimasi performa database
+- Bug fixes
+
+## 📄 License
+
+MIT License

@@ -12,5 +12,3 @@ plotly-express>=0.4.1
 supabase>=2.0.0
 python-dotenv>=1.0.0
 tensorflow==2.10.0
-protobuf==3.19.6
-h5py==3.1.0

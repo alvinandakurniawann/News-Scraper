@@ -1,6 +1,6 @@
-# News Scraper & Fake News Detector
+# Fake News Detector
 
-Aplikasi web untuk scraping berita dari berbagai situs Indonesia dan deteksi fake news menggunakan machine learning.
+Aplikasi web untuk scraping berita dari dan deteksi fake news menggunakan machine learning.
 
 ## 📁 Struktur Project
 
@@ -132,9 +132,8 @@ Untuk deployment ke platform seperti Heroku, Railway, atau Vercel, pastikan:
 - `stem`: Mengubah kata ke bentuk dasar
 
 ### Model Types :
-- TF-IDF + LSTM
+- TF-IDF + LogReg
 - BERT + LogReg
-- RoBERTa + GRU
 
 ## 🌐 Keuntungan Menggunakan Supabase
 

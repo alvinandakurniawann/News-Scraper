@@ -162,10 +162,13 @@ class TfidfLstmDetector:
             # Asumsi model LSTM dilatih pada dense representation dari TF-IDF.
             text_vectorized = self.vectorizer.transform(texts).toarray() # Convert sparse to dense
 
+            # Tambahkan dimensi 'time_steps' dengan ukuran 1 untuk input LSTM
+            text_vectorized_lstm = np.expand_dims(text_vectorized, axis=1)
+
             # Lakukan prediksi dengan model LSTM
             # Output model Keras predict_proba biasanya probability untuk setiap kelas
             # Asumsi output adalah array 2D, dengan sumbu 1 adalah probabilitas per kelas
-            predictions_proba = self.lstm_model.predict(text_vectorized)
+            predictions_proba = self.lstm_model.predict(text_vectorized_lstm)
 
             # Asumsi model output 1 nilai (sigmoid untuk binary classification)
             # Jika output 1 nilai (sigmoid), ubah menjadi 2 nilai probabilitas

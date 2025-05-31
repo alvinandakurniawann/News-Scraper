@@ -24,4 +24,5 @@ supabase>=2.0.0
 python-dotenv>=1.0.0
 
 # Deep Learning (for LSTM)
-tensorflow
+numpy==1.26.4
+tensorflow==2.10.0

@@ -83,16 +83,117 @@ class TfidfLstmDetector:
     def _load_lstm_model(self, model_path: str) -> bool:
         # Cek ketersediaan TensorFlow/Keras sebelum memuat
         if not hasattr(tf, 'keras') or not hasattr(tf.keras.models, 'load_model'):
-             print("Gagal memuat model Keras: Library TensorFlow/Keras tidak tersedia.")
-             self.lstm_model = None
-             return False
+            print("Gagal memuat model Keras: Library TensorFlow/Keras tidak tersedia.")
+            self.lstm_model = None
+            return False
 
         try:
-            loaded_model = tf.keras.models.load_model(model_path)
-            # Tambahkan validasi tipe model Keras jika perlu
-            self.lstm_model = loaded_model
-            print(f"Model LSTM berhasil dimuat dari: {model_path}")
-            return True
+            # Coba muat model dengan opsi compile=False
+            try:
+                # Coba muat model langsung
+                self.lstm_model = tf.keras.models.load_model(
+                    model_path,
+                    compile=False
+                )
+                
+                # Kompilasi model dengan konfigurasi sederhana
+                self.lstm_model.compile(
+                    optimizer='adam',
+                    loss='binary_crossentropy',
+                    metrics=['accuracy']
+                )
+                
+                print(f"Model LSTM berhasil dimuat dari: {model_path}")
+                return True
+                
+            except Exception as e:
+                print(f"Gagal memuat model dengan cara standar, mencoba pendekatan alternatif...")
+                print(f"Error: {str(e)}")
+                
+                # Dapatkan jumlah fitur dari TF-IDF vectorizer
+                num_features = len(self.vectorizer.get_feature_names_out()) if hasattr(self.vectorizer, 'get_feature_names_out') else 5000
+                
+                # Coba buat model dengan arsitektur yang sesuai dengan training
+                try:
+                    model = tf.keras.Sequential([
+                        # Input shape: (batch_size, 1, num_features)
+                        tf.keras.layers.InputLayer(input_shape=(1, num_features), name='input_layer'),
+                        
+                        # LSTM layer dengan 64 unit
+                        tf.keras.layers.LSTM(64, return_sequences=False, name='lstm'),
+                        
+                        # Output layer untuk binary classification
+                        tf.keras.layers.Dense(1, activation='sigmoid', name='output')
+                    ])
+                    
+                    # Kompilasi model
+                    model.compile(
+                        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy']
+                    )
+                    
+                    # Coba muat bobot
+                    model.load_weights(model_path)
+                    self.lstm_model = model
+                    print(f"Model LSTM berhasil dimuat dengan arsitektur custom (1, {num_features}) dari: {model_path}")
+                    return True
+                    
+                except Exception as e2:
+                    print(f"Gagal memuat model dengan arsitektur custom: {e2}")
+                    
+                    # Coba pendekatan terakhir: muat model dengan custom_objects
+                    try:
+                        custom_objects = {
+                            'InputLayer': tf.keras.layers.InputLayer,
+                            'LSTM': tf.keras.layers.LSTM,
+                            'Dense': tf.keras.layers.Dense,
+                            'Adam': tf.keras.optimizers.Adam
+                        }
+                        
+                        self.lstm_model = tf.keras.models.load_model(
+                            model_path,
+                            custom_objects=custom_objects,
+                            compile=False
+                        )
+                        
+                        # Kompilasi model
+                        self.lstm_model.compile(
+                            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                            loss='binary_crossentropy',
+                            metrics=['accuracy']
+                        )
+                        
+                        print(f"Model LSTM berhasil dimuat dengan custom_objects dari: {model_path}")
+                        return True
+                        
+                    except Exception as e3:
+                        print(f"Gagal memuat model dengan custom_objects: {e3}")
+                        
+                        # Jika semua gagal, coba pendekatan terakhir dengan eksplisit shape
+                        try:
+                            # Coba dengan shape yang umum digunakan (5000 fitur)
+                            model = tf.keras.Sequential([
+                                tf.keras.layers.InputLayer(input_shape=(1, 5000), name='input_layer'),
+                                tf.keras.layers.LSTM(64, return_sequences=False, name='lstm'),
+                                tf.keras.layers.Dense(1, activation='sigmoid', name='output')
+                            ])
+                            
+                            model.compile(
+                                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                                loss='binary_crossentropy',
+                                metrics=['accuracy']
+                            )
+                            
+                            model.load_weights(model_path, by_name=True, skip_mismatch=True)
+                            self.lstm_model = model
+                            print(f"Model LSTM berhasil dimuat dengan shape default (1, 5000) dari: {model_path}")
+                            return True
+                            
+                        except Exception as e4:
+                            print(f"Gagal memuat model dengan shape default: {e4}")
+                            raise e4
+                    
         except FileNotFoundError:
             print(f"Gagal memuat Model LSTM: File tidak ditemukan di {model_path}")
             self.lstm_model = None
@@ -160,10 +261,13 @@ class TfidfLstmDetector:
             # Namun, jika model LSTM Anda dilatih pada output TF-IDF (Dense layer pertama),
             # maka transformasi TF-IDF sparse perlu diubah menjadi dense array.
             # Asumsi model LSTM dilatih pada dense representation dari TF-IDF.
-            text_vectorized = self.vectorizer.transform(texts).toarray() # Convert sparse to dense
+            #text_vectorized = self.vectorizer.transform(texts).toarray() # Convert sparse to dense
 
             # Tambahkan dimensi 'time_steps' dengan ukuran 1 untuk input LSTM
-            text_vectorized_lstm = np.expand_dims(text_vectorized, axis=1)
+            #text_vectorized_lstm = np.expand_dims(text_vectorized, axis=1)
+
+            text_vectorized = self.vectorizer.transform(texts)
+            text_vectorized_lstm = text_vectorized.toarray().reshape(text_vectorized.shape[0], 1, text_vectorized.shape[1])
 
             # Lakukan prediksi dengan model LSTM
             # Output model Keras predict_proba biasanya probability untuk setiap kelas

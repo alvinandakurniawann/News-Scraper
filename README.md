@@ -147,8 +147,203 @@ MIT License
 
 ---
 
-Dikembangkan untuk Tugas Akhir - TelkomUniversity © 2025
+Dikembangkan untuk Tugas Akhir - TelkomUniversity 2025
 
 ## 📄 License
 
 MIT License
+
+<div align="center">
+  <a href="#english" class="lang-btn" style="padding: 8px 16px; margin: 0 5px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">English</a>
+  <a href="#indonesia" class="lang-btn" style="padding: 8px 16px; margin: 0 5px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">Bahasa Indonesia</a>
+</div>
+
+<!-- English Version -->
+<div id="english">
+
+# News Scraper & Fake News Detector
+
+An application for detecting fake news using machine learning models with a Streamlit interface.
+
+## 🚀 Features
+
+- Automatic news extraction from various news websites
+- Fake news detection using machine learning models
+- Multi-language support (English and Indonesian)
+- Interactive user interface
+- Prediction result visualization
+- Checking history
+
+## 🛠️ Technologies
+
+- **Programming Language**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (optional)
+- **Deployment**: Streamlit Cloud, Heroku, etc.
+
+## 🔧 Preprocessing
+
+- **Clean**: Remove unnecessary characters
+- **Case Folding**: Convert to lowercase
+- **Tokenization**: Split text into words
+- **Stopword Removal**: Remove common words
+- **Stemming**: Convert words to their base form
+
+## 📊 Models
+
+- **TF-IDF + Logistic Regression**
+  - Accuracy: > 90%
+  - Supports English and Indonesian
+  - Fast and lightweight
+
+## 🌐 Deployment
+
+Application can be deployed on:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Other cloud platforms
+
+## 🤝 Contributing
+
+Contributions are welcome for:
+- Code improvements
+- New features
+- Model accuracy improvements
+- Language translations
+
+## 📄 License
+
+MIT License
+
+</div>
+
+<!-- Indonesian Version -->
+<div id="indonesia" style="display: none;">
+
+# News Scraper & Detektor Berita Palsu
+
+Aplikasi untuk mendeteksi berita palsu menggunakan model machine learning dengan antarmuka Streamlit.
+
+## 🚀 Fitur
+
+- Ekstraksi berita otomatis dari berbagai situs berita
+- Deteksi berita palsu menggunakan model machine learning
+- Dukungan multi-bahasa (Indonesia dan Inggris)
+- Antarmuka pengguna yang interaktif
+- Visualisasi hasil prediksi
+- Riwayat pengecekan
+
+## 🛠️ Teknologi
+
+- **Bahasa Pemrograman**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (opsional)
+- **Deployment**: Streamlit Cloud, Heroku, dll.
+
+## 🔧 Preprocessing
+
+- **Bersihkan**: Menghapus karakter tidak perlu
+- **Case Folding**: Mengubah ke huruf kecil
+- **Tokenisasi**: Memecah teks menjadi kata-kata
+- **Stopword Removal**: Menghapus kata umum
+- **Stemming**: Mengubah kata ke bentuk dasarnya
+
+## 📊 Model
+
+- **TF-IDF + Logistic Regression**
+  - Akurasi: > 90%
+  - Mendukung Bahasa Indonesia dan Inggris
+  - Cepat dan ringan
+
+## 🌐 Deployment
+
+Aplikasi dapat di-deploy di:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Platform cloud lainnya
+
+## 🤝 Berkontribusi
+
+Kontribusi terbuka untuk:
+- Perbaikan kode
+- Penambahan fitur
+- Peningkatan akurasi model
+- Terjemahan bahasa
+
+## 📄 License
+
+MIT License
+
+</div>
+
+<!-- JavaScript for Language Toggle -->
+<script>
+  // Function to show selected language and hide others
+  function showLanguage(lang) {
+    // Hide all language divs
+    document.querySelectorAll('div[id^="english"], div[id^="indonesia"]').forEach(div => {
+      div.style.display = 'none';
+    });
+    
+    // Show selected language
+    document.getElementById(lang).style.display = 'block';
+    
+    // Update URL hash
+    window.location.hash = lang;
+    
+    // Save preference to localStorage
+    localStorage.setItem('preferredLanguage', lang);
+  }
+  
+  // Check URL hash on page load
+  window.onload = function() {
+    // Check for saved language preference
+    const savedLang = localStorage.getItem('preferredLanguage');
+    const hashLang = window.location.hash.substring(1);
+    
+    // Show language based on priority: URL hash > saved preference > default to English
+    if (hashLang && ['english', 'indonesia'].includes(hashLang)) {
+      showLanguage(hashLang);
+    } else if (savedLang && ['english', 'indonesia'].includes(savedLang)) {
+      showLanguage(savedLang);
+    } else {
+      showLanguage('english'); // Default to English
+    }
+    
+    // Add click handlers to language buttons
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const lang = this.getAttribute('href').substring(1);
+        showLanguage(lang);
+      });
+    });
+  };
+</script>
+
+<!-- CSS for better styling -->
+<style>
+  .lang-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 0 5px;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+  }
+  
+  .lang-btn:hover {
+    background: #45a049;
+  }
+  
+  /* Make sure the language selector stays at the top */
+  body > div:first-child {
+    margin-bottom: 2em;
+  }
+</style>

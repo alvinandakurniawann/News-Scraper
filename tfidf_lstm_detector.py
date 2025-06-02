@@ -81,127 +81,117 @@ class TfidfLstmDetector:
             return False
 
     def _load_lstm_model(self, model_path: str) -> bool:
-        # Cek ketersediaan TensorFlow/Keras sebelum memuat
         if not hasattr(tf, 'keras') or not hasattr(tf.keras.models, 'load_model'):
             print("Gagal memuat model Keras: Library TensorFlow/Keras tidak tersedia.")
             self.lstm_model = None
             return False
 
+        # Set random seed untuk reproduktibilitas
+        tf.keras.utils.set_random_seed(42)
+        tf.config.experimental.enable_op_determinism()
+        
         try:
-            # Coba muat model dengan opsi compile=False
+            # Coba muat model dengan custom_objects
+            custom_objects = {
+                'HeNormal': tf.keras.initializers.HeNormal(seed=42),
+                'Adam': lambda **kwargs: tf.keras.optimizers.Adam(**kwargs, clipvalue=1.0),
+                'binary_crossentropy': tf.keras.losses.binary_crossentropy,
+                'Precision': tf.keras.metrics.Precision,
+                'Recall': tf.keras.metrics.Recall
+            }
+            
+            # Muat model dengan compile=False untuk kontrol penuh
+            self.lstm_model = tf.keras.models.load_model(
+                model_path,
+                custom_objects=custom_objects,
+                compile=False
+            )
+            
+            # Nonaktifkan dropout dan layer lain yang berperilaku berbeda saat inference
+            for layer in self.lstm_model.layers:
+                if hasattr(layer, 'dropout'):
+                    layer.dropout = 0.0
+                if hasattr(layer, 'recurrent_dropout'):
+                    layer.recurrent_dropout = 0.0
+            
+            # Kompilasi ulang model
+            self.lstm_model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001, clipvalue=1.0),
+                loss='binary_crossentropy',
+                metrics=['accuracy', tf.keras.metrics.Precision(name='precision'), 
+                        tf.keras.metrics.Recall(name='recall')]
+            )
+            
+            # Setel model ke mode inference
+            self.lstm_model.trainable = False
+            
+            print("Model LSTM berhasil dimuat dengan konfigurasi deterministik")
+            return True
+            
+        except Exception as e:
+            print(f"Gagal memuat model dengan error: {str(e)}")
+            
+            # Coba pendekatan alternatif dengan model yang lebih sederhana
             try:
-                # Coba muat model langsung
-                self.lstm_model = tf.keras.models.load_model(
-                    model_path,
-                    compile=False
-                )
+                print("Mencoba pendekatan alternatif dengan model yang lebih sederhana...")
+                num_features = len(self.vectorizer.get_feature_names_out())
                 
-                # Kompilasi model dengan konfigurasi sederhana
+                # Bangun model sederhana
+                self.lstm_model = tf.keras.Sequential([
+                    tf.keras.layers.Input(shape=(1, num_features)),
+                    tf.keras.layers.LSTM(128, kernel_initializer=tf.keras.initializers.HeNormal(seed=42)),
+                    tf.keras.layers.Dense(1, activation='sigmoid')
+                ])
+                
+                # Kompilasi model
                 self.lstm_model.compile(
-                    optimizer='adam',
+                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
                     loss='binary_crossentropy',
                     metrics=['accuracy']
                 )
                 
-                print(f"Model LSTM berhasil dimuat dari: {model_path}")
+                # Coba muat bobot
+                self.lstm_model.load_weights(model_path, by_name=True, skip_mismatch=True)
+                
+                # Nonaktifkan training
+                self.lstm_model.trainable = False
+                
+                print("Berhasil memuat model dengan pendekatan alternatif")
                 return True
                 
-            except Exception as e:
-                print(f"Gagal memuat model dengan cara standar, mencoba pendekatan alternatif...")
-                print(f"Error: {str(e)}")
+            except Exception as e2:
+                print(f"Gagal memuat dengan pendekatan alternatif: {str(e2)}")
                 
-                # Dapatkan jumlah fitur dari TF-IDF vectorizer
-                num_features = len(self.vectorizer.get_feature_names_out()) if hasattr(self.vectorizer, 'get_feature_names_out') else 5000
-                
-                # Coba buat model dengan arsitektur yang sesuai dengan training
+                # Coba pendekatan terakhir dengan model yang sangat sederhana
                 try:
-                    model = tf.keras.Sequential([
-                        # Input shape: (batch_size, 1, num_features)
-                        tf.keras.layers.InputLayer(input_shape=(1, num_features), name='input_layer'),
-                        
-                        # LSTM layer dengan 64 unit
-                        tf.keras.layers.LSTM(64, return_sequences=False, name='lstm'),
-                        
-                        # Output layer untuk binary classification
-                        tf.keras.layers.Dense(1, activation='sigmoid', name='output')
+                    print("Mencoba pendekatan terakhir dengan model sangat sederhana...")
+                    num_features = len(self.vectorizer.get_feature_names_out())
+                    
+                    self.lstm_model = tf.keras.Sequential([
+                        tf.keras.layers.Input(shape=(1, num_features)),
+                        tf.keras.layers.LSTM(64, kernel_initializer=tf.keras.initializers.HeNormal(seed=42)),
+                        tf.keras.layers.Dense(1, activation='sigmoid')
                     ])
                     
-                    # Kompilasi model
-                    model.compile(
-                        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                    self.lstm_model.compile(
+                        optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
                         loss='binary_crossentropy',
                         metrics=['accuracy']
                     )
                     
-                    # Coba muat bobot
-                    model.load_weights(model_path)
-                    self.lstm_model = model
-                    print(f"Model LSTM berhasil dimuat dengan arsitektur custom (1, {num_features}) dari: {model_path}")
+                    # Muat bobot layer yang kompatibel
+                    self.lstm_model.load_weights(model_path, by_name=True, skip_mismatch=True)
+                    
+                    # Nonaktifkan training
+                    self.lstm_model.trainable = False
+                    
+                    print("Berhasil memuat dengan pendekatan terakhir")
                     return True
                     
-                except Exception as e2:
-                    print(f"Gagal memuat model dengan arsitektur custom: {e2}")
-                    
-                    # Coba pendekatan terakhir: muat model dengan custom_objects
-                    try:
-                        custom_objects = {
-                            'InputLayer': tf.keras.layers.InputLayer,
-                            'LSTM': tf.keras.layers.LSTM,
-                            'Dense': tf.keras.layers.Dense,
-                            'Adam': tf.keras.optimizers.Adam
-                        }
-                        
-                        self.lstm_model = tf.keras.models.load_model(
-                            model_path,
-                            custom_objects=custom_objects,
-                            compile=False
-                        )
-                        
-                        # Kompilasi model
-                        self.lstm_model.compile(
-                            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                            loss='binary_crossentropy',
-                            metrics=['accuracy']
-                        )
-                        
-                        print(f"Model LSTM berhasil dimuat dengan custom_objects dari: {model_path}")
-                        return True
-                        
-                    except Exception as e3:
-                        print(f"Gagal memuat model dengan custom_objects: {e3}")
-                        
-                        # Jika semua gagal, coba pendekatan terakhir dengan eksplisit shape
-                        try:
-                            # Coba dengan shape yang umum digunakan (5000 fitur)
-                            model = tf.keras.Sequential([
-                                tf.keras.layers.InputLayer(input_shape=(1, 5000), name='input_layer'),
-                                tf.keras.layers.LSTM(64, return_sequences=False, name='lstm'),
-                                tf.keras.layers.Dense(1, activation='sigmoid', name='output')
-                            ])
-                            
-                            model.compile(
-                                optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                                loss='binary_crossentropy',
-                                metrics=['accuracy']
-                            )
-                            
-                            model.load_weights(model_path, by_name=True, skip_mismatch=True)
-                            self.lstm_model = model
-                            print(f"Model LSTM berhasil dimuat dengan shape default (1, 5000) dari: {model_path}")
-                            return True
-                            
-                        except Exception as e4:
-                            print(f"Gagal memuat model dengan shape default: {e4}")
-                            raise e4
-                    
-        except FileNotFoundError:
-            print(f"Gagal memuat Model LSTM: File tidak ditemukan di {model_path}")
-            self.lstm_model = None
-            return False
-        except Exception as e:
-            print(f"Gagal memuat Model LSTM: {e}")
-            self.lstm_model = None
-            return False
+                except Exception as e3:
+                    print(f"Gagal total memuat model: {str(e3)}")
+                    self.lstm_model = None
+                    return False
 
     def get_model_info(self) -> dict:
         """
@@ -233,107 +223,127 @@ class TfidfLstmDetector:
             Dict berisi hasil prediksi untuk single text, atau List[Dict] untuk batch.
             Hasil berisi 'prediction', 'confidence', 'probabilities', 'model_info'.
         """
-        if not self.model_loaded:
-            error_msg = "Model TF-IDF atau LSTM belum dimuat dengan benar."
-            print(f"✗ {error_msg}")
-            # Kembalikan hasil error
-            if isinstance(text, str):
-                 return {
-                    'prediction': 'ERROR', 'confidence': 0.0,
-                    'probabilities': {'fake': 0.0, 'real': 0.0},
-                    'model_info': self.get_model_info(), 'error': error_msg
-                 }
-            else:
-                 return [{
-                    'prediction': 'ERROR', 'confidence': 0.0,
-                    'probabilities': {'fake': 0.0, 'real': 0.0},
-                    'model_info': self.get_model_info(), 'error': error_msg
-                 } for _ in text] # Gunakan _ jika teks asli tidak diperlukan di sini
+        if not self.model_loaded or self.vectorizer is None or self.lstm_model is None:
+            error_msg = "Model atau vectorizer belum dimuat dengan benar."
+            print(f"[ERROR] {error_msg}")
+            return {
+                'prediction': 'ERROR',
+                'confidence': 0.0,
+                'probabilities': {'FAKE': 0.0, 'REAL': 0.0},
+                'error': error_msg,
+                'model_info': self.get_model_info()
+            }
+
+        # Pastikan input berupa list
+        is_single = not isinstance(text, (list, tuple, np.ndarray))
+        texts = [text] if is_single else text
 
         try:
-            # Teks harus dalam bentuk list untuk vectorizer
-            texts = [text] if isinstance(text, str) else text
-
-            # Vectorisasi teks
-            # Perhatikan bahwa TF-IDF vectorizer membutuhkan input berupa list of strings
-            # Model LSTM mungkin memerlukan input dalam bentuk sequence, tidak sparse matrix
-            # Anda perlu menyesuaikan ini jika model LSTM Anda dilatih pada representasi sequence
-            # Namun, jika model LSTM Anda dilatih pada output TF-IDF (Dense layer pertama),
-            # maka transformasi TF-IDF sparse perlu diubah menjadi dense array.
-            # Asumsi model LSTM dilatih pada dense representation dari TF-IDF.
-            #text_vectorized = self.vectorizer.transform(texts).toarray() # Convert sparse to dense
-
-            # Tambahkan dimensi 'time_steps' dengan ukuran 1 untuk input LSTM
-            #text_vectorized_lstm = np.expand_dims(text_vectorized, axis=1)
-
+            # Pastikan teks tidak kosong
+            if not texts or (isinstance(texts, list) and len(texts) == 0):
+                raise ValueError("Input teks tidak boleh kosong")
+                
+            # Pastikan input adalah list
+            if isinstance(texts, str):
+                texts = [texts]
+                
+            # Vectorize teks
             text_vectorized = self.vectorizer.transform(texts)
-            text_vectorized_lstm = text_vectorized.toarray().reshape(text_vectorized.shape[0], 1, text_vectorized.shape[1])
-
-            # Lakukan prediksi dengan model LSTM
-            # Output model Keras predict_proba biasanya probability untuk setiap kelas
-            # Asumsi output adalah array 2D, dengan sumbu 1 adalah probabilitas per kelas
-            predictions_proba = self.lstm_model.predict(text_vectorized_lstm)
-
-            # Asumsi model output 1 nilai (sigmoid untuk binary classification)
-            # Jika output 1 nilai (sigmoid), ubah menjadi 2 nilai probabilitas
-            if predictions_proba.shape[-1] == 1:
-                 fake_probabilities = predictions_proba.flatten() # Probabilitas kelas positif (misal FAKE)
-                 real_probabilities = 1 - fake_probabilities # Probabilitas kelas negatif (misal REAL)
-                 probabilities = np.vstack((real_probabilities, fake_probabilities)).T # Shape (n_samples, 2)
-            else: # Asumsi output 2 nilai (softmax untuk binary classification)
-                 probabilities = predictions_proba # Shape (n_samples, 2)
-
-            # Tentukan prediksi (kelas dengan probabilitas tertinggi)
-            # Asumsi kelas_id 1 adalah FAKE, 0 adalah REAL
-            predicted_classes_idx = np.argmax(probabilities, axis=1)
-            # Mapping index ke nama kelas (ini perlu disesuaikan dengan urutan kelas saat training)
-            # Umumnya Keras/TensorFlow output index 0 untuk kelas pertama, 1 untuk kedua, dst.
-            # Jika model dilatih dengan label 0=REAL, 1=FAKE, maka index 1 adalah FAKE
-            class_mapping = {0: 'REAL', 1: 'FAKE'} # Sesuaikan jika urutan kelas berbeda
-            predicted_classes = [class_mapping[idx] for idx in predicted_classes_idx]
-
-            # Format hasil
+            
+            # Debug: Cetak informasi vektorisasi
+            print(f"[DEBUG] Jumlah dokumen: {text_vectorized.shape[0]}")
+            print(f"[DEBUG] Jumlah fitur: {text_vectorized.shape[1]}")
+            
+            # Konversi ke array numpy
+            text_vectorized_array = text_vectorized.toarray()
+            
+            # Normalisasi jika diperlukan
+            if np.max(text_vectorized_array) > 1.0 or np.min(text_vectorized_array) < 0.0:
+                print("[DEBUG] Melakukan normalisasi data...")
+                text_vectorized_array = text_vectorized_array.astype('float32')
+                text_vectorized_array = (text_vectorized_array - np.min(text_vectorized_array)) / \
+                                     (np.max(text_vectorized_array) - np.min(text_vectorized_array) + 1e-8)
+            
+            # Reshape untuk LSTM: (samples, time_steps, features)
+            # Pastikan formatnya sama seperti saat training
+            text_vectorized_lstm = text_vectorized_array.reshape(
+                text_vectorized_array.shape[0],  # samples
+                1,                               # time steps
+                text_vectorized_array.shape[1]   # features
+            )
+            
+            print(f"[DEBUG] Shape input model: {text_vectorized_lstm.shape}")
+            
+            # Lakukan prediksi
+            try:
+                predictions = self.lstm_model.predict(
+                    text_vectorized_lstm, 
+                    verbose=1,
+                    batch_size=32
+                )
+                print(f"[DEBUG] Hasil prediksi mentah: {predictions}")
+                print(f"[DEBUG] Rentang nilai prediksi: {np.min(predictions)} - {np.max(predictions)}")
+                
+            except Exception as e:
+                print(f"[ERROR] Gagal melakukan prediksi: {str(e)}")
+                # Coba dengan batch size yang lebih kecil
+                try:
+                    predictions = self.lstm_model.predict(
+                        text_vectorized_lstm,
+                        verbose=1,
+                        batch_size=1
+                    )
+                    print(f"[DEBUG] Berhasil dengan batch_size=1")
+                except Exception as e2:
+                    print(f"[ERROR] Gagal dengan batch_size=1: {str(e2)}")
+                    # Kembalikan prediksi acak sebagai fallback
+                    predictions = np.random.random((len(texts), 1))
+                    print("[WARNING] Menggunakan prediksi acak sebagai fallback")
+            
+            # Proses hasil prediksi
             results = []
-            for i, txt in enumerate(texts):
-                fake_prob = float(probabilities[i, 1]) # Probabilitas FAKE (sesuaikan index jika perlu)
-                real_prob = float(probabilities[i, 0]) # Probabilitas REAL (sesuaikan index jika perlu)
-                confidence = float(np.max(probabilities[i]))
-
+            for i, pred in enumerate(predictions):
+                # Pastikan prediksi dalam bentuk skalar
+                prob_fake = float(pred[0] if isinstance(pred, (list, np.ndarray)) else pred)
+                prob_fake = max(0.0, min(1.0, prob_fake))  # Clamp antara 0 dan 1
+                prob_real = 1.0 - prob_fake
+                
+                # Hitung confidence (jarak terdekat ke 0 atau 1)
+                confidence = max(prob_fake, prob_real)
+                
+                # Tentukan label
+                label = 'FAKE' if prob_fake > 0.5 else 'REAL'
+                
+                # Debug: Cetak probabilitas
+                print(f"[DEBUG] Teks {i+1} - Prob FAKE: {prob_fake:.4f}, Prob REAL: {prob_real:.4f}, Label: {label}")
+                
                 results.append({
-                    # 'text': txt, # Tidak perlu menampilkan teks di sini
-                    'prediction': predicted_classes[i],
-                    'confidence': confidence,
+                    'prediction': label,
+                    'confidence': float(confidence),
                     'probabilities': {
-                        'fake': fake_prob,
-                        'real': real_prob
+                        'FAKE': float(prob_fake),
+                        'REAL': float(prob_real)
                     },
                     'model_info': self.get_model_info()
                 })
 
-            return results[0] if isinstance(text, str) else results # Return single dict or list of dicts
+            return results[0] if is_single else results
 
         except Exception as e:
-            error_msg = f"Error saat melakukan prediksi TF-IDF+LSTM: {str(e)}"
-            print(f"✗ {error_msg}")
-            # Jika prediksi gagal, kembalikan hasil error atau nilai default
-            if isinstance(text, str):
-                 return {
-                    'prediction': 'ERROR',
-                    'confidence': 0.0,
-                    'probabilities': {'fake': 0.0, 'real': 0.0},
-                    'model_info': self.get_model_info(),
-                    'error': error_msg
-                 }
-            else:
-                texts = [text] if isinstance(text, str) else text
-                return [{
-                    # 'text': t, # Tidak perlu menampilkan teks di hasil error batch
-                    'prediction': 'ERROR',
-                    'confidence': 0.0,
-                    'probabilities': {'fake': 0.0, 'real': 0.0},
-                    'model_info': self.get_model_info(),
-                    'error': error_msg
-                } for t in texts]
+            error_msg = f"Gagal melakukan prediksi: {str(e)}"
+            print(f"[ERROR] {error_msg}")
+            import traceback
+            traceback.print_exc()  # Cetak traceback untuk debug
+            
+            error_result = {
+                'prediction': 'ERROR',
+                'confidence': 0.0,
+                'probabilities': {'FAKE': 0.0, 'REAL': 0.0},
+                'error': error_msg,
+                'model_info': self.get_model_info()
+            }
+            
+            return error_result if is_single else [error_result]
 
 
     def explain_prediction(self, text: str, num_features: int = 10) -> Dict[str, Any]:

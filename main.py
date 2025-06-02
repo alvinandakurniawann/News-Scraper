@@ -63,9 +63,14 @@ def main():
         """)
         st.stop()
     
+    # Initialize session state for preprocessing steps if not exists
+    if 'preprocessing_steps' not in st.session_state:
+        st.session_state.preprocessing_steps = ['clean', 'normalize', 'remove_stopwords', 'stem']
+    
     # Initialize components
     extractor = NewsExtractor()
     preprocessor = TextPreprocessor()
+    st.session_state.preprocessor = preprocessor  # Store in session state
     
     # Get model configuration
     model_config = Config.get_model_config()
@@ -151,91 +156,117 @@ def main():
 
 def setup_sidebar():
     """Setup sidebar configuration"""
+    # Initialize session state variables if they don't exist
+    if 'preprocessing_steps' not in st.session_state:
+        st.session_state.preprocessing_steps = Config.get_app_settings().get("preprocessing_defaults", 
+                                                                          ['clean', 'punctuation', 'tokenize', 'stopwords'])
+    
+    if 'current_model' not in st.session_state:
+        st.session_state.current_model = {}
+    
     with st.sidebar:
         st.header("⚙️ Settings")
         
         # Model selection
         model_options = [model["name"] for model in st.session_state.model_config["available_models"]]
+        
+        # Set default model index
+        default_index = 0
+        if st.session_state.current_model and 'name' in st.session_state.current_model:
+            try:
+                default_index = model_options.index(st.session_state.current_model["name"])
+            except ValueError:
+                pass
+                
         selected_model_name = st.selectbox(
             "Select Model:",
             model_options,
-            index=model_options.index(st.session_state.current_model["name"]) if "current_model" in st.session_state else 0
+            index=default_index
         )
         
         # Update model if selection changed
-        if (hasattr(st.session_state, 'current_model') and 
-            st.session_state.current_model["name"] != selected_model_name):
-            selected_model_info = next(m for m in st.session_state.model_config["available_models"] 
-                               if m["name"] == selected_model_name)
-            # Create new detector instance based on selected model type
-            new_detector = None
-            if selected_model_info["type"] == "tfidf":
-                new_detector = TfidfLogregDetector(model_path=selected_model_info["path"])
-            elif selected_model_info["type"] == "bert+logreg":
-                 # Asumsikan path model_path di config adalah path file logreg
-                embeddings_path = st.session_state.model_config.get('bert_embeddings_path', None) # Sesuaikan jika path embeddings ada di config
-                new_detector = BertLogregDetector(model_path=selected_model_info["path"], embeddings_path=embeddings_path) # Tambahkan embeddings_path jika perlu
-            elif selected_model_info["type"] == "tfidf_lstm":
-                 # Ambil path vectorizer dan model dari model_info
-                 vectorizer_path = selected_model_info.get("vectorizer_path")
-                 model_path = selected_model_info.get("model_path")
-                 if vectorizer_path and model_path:
-                     new_detector = TfidfLstmDetector(vectorizer_path=vectorizer_path, model_path=model_path)
-                 else:
-                     st.error(f"Konfigurasi model TF-IDF+LSTM tidak lengkap: path vectorizer atau model tidak ditemukan.")
-                     new_detector = None
-            else:
-                 st.error(f"Tipe model tidak didukung: {selected_model_info['type']}")
-            
-            if new_detector and new_detector.model_loaded:
-                 st.session_state.detector = new_detector # Simpan instance detector baru di session_state
-                 st.session_state.current_model = selected_model_info
-                 st.success(f"Switched to model: {selected_model_info['name']}")
-                 print(f"[DEBUG Sidebar] Detector baru disimpan di session_state. Tipe: {type(new_detector).__name__}, Instance ID: {id(new_detector)}")
-            elif new_detector:
-                 st.error(f"Failed to load model: {selected_model_info['name']}")
+        if st.session_state.current_model.get("name") != selected_model_name:
+            try:
+                selected_model_info = next(m for m in st.session_state.model_config["available_models"] 
+                                   if m["name"] == selected_model_name)
+                
+                # Create new detector instance based on selected model type
+                new_detector = None
+                if selected_model_info["type"] == "tfidf":
+                    new_detector = TfidfLogregDetector(model_path=selected_model_info["path"])
+                elif selected_model_info["type"] == "bert+logreg":
+                    embeddings_path = st.session_state.model_config.get('bert_embeddings_path', None)
+                    new_detector = BertLogregDetector(model_path=selected_model_info["path"], 
+                                                    embeddings_path=embeddings_path)
+                elif selected_model_info["type"] == "tfidf_lstm":
+                    vectorizer_path = selected_model_info.get("vectorizer_path")
+                    model_path = selected_model_info.get("model_path")
+                    if vectorizer_path and model_path:
+                        new_detector = TfidfLstmDetector(vectorizer_path=vectorizer_path, 
+                                                     model_path=model_path)
+                    else:
+                        st.error("Konfigurasi model TF-IDF+LSTM tidak lengkap")
+                else:
+                    st.error(f"Tipe model tidak didukung: {selected_model_info['type']}")
+                
+                if new_detector and new_detector.model_loaded:
+                    st.session_state.detector = new_detector
+                    st.session_state.current_model = selected_model_info
+                    st.success(f"Model berhasil diubah ke: {selected_model_info['name']}")
+                elif new_detector:
+                    st.error(f"Gagal memuat model: {selected_model_info['name']}")
+                    
+            except Exception as e:
+                st.error(f"Terjadi kesalahan saat mengganti model: {str(e)}")
         
         st.markdown("---")
         
-        # Display current model info from the active detector instance
+        # Display current model info
         if 'detector' in st.session_state and st.session_state.detector:
-            model_info = st.session_state.detector.get_model_info()
-            with st.expander("ℹ️ Model Info"):
-                st.write(f"**Name:** {model_info.get('name', 'N/A')}")
-                st.write(f"**Type:** {model_info.get('type', 'N/A')}")
-                st.write(f"**Status:** {'✅ ' if st.session_state.detector.model_loaded else '❌ '}{model_info.get('status', 'Unknown')}")
-                # Tampilkan path yang spesifik sesuai tipe model
-                if model_info['type'] == 'tfidf':
-                     st.write(f"**Path:** `{model_info.get('path', 'N/A')}`")
-                elif model_info['type'] == 'bert+logreg':
-                     st.write(f"**LogReg Path:** `{model_info.get('logreg_path', 'N/A')}`")
-                     if model_info.get('embeddings_path'):
-                         st.write(f"**Embeddings Path:** `{model_info['embeddings_path']}`")
-                elif model_info['type'] == 'tfidf_lstm':
-                    st.write(f"**Vectorizer Path:** `{model_info.get('vectorizer_path', 'N/A')}`")
-                    st.write(f"**Model Path:** `{model_info.get('model_path', 'N/A')}`")
+            try:
+                model_info = st.session_state.detector.get_model_info()
+                with st.expander("ℹ️ Informasi Model"):
+                    st.write(f"**Nama:** {model_info.get('name', 'N/A')}")
+                    st.write(f"**Tipe:** {model_info.get('type', 'N/A')}")
+                    status_icon = "✅" if st.session_state.detector.model_loaded else "❌"
+                    st.write(f"**Status:** {status_icon} {model_info.get('status', 'Unknown')}")
+                    
+                    # Tampilkan path yang sesuai dengan tipe model
+                    if model_info['type'] == 'tfidf':
+                        st.write(f"**Path Model:** `{model_info.get('path', 'N/A')}`")
+                    elif model_info['type'] == 'bert+logreg':
+                        st.write(f"**Path Model LogReg:** `{model_info.get('logreg_path', 'N/A')}`")
+                        if model_info.get('embeddings_path'):
+                            st.write(f"**Path Embeddings:** `{model_info['embeddings_path']}`")
+                    elif model_info['type'] == 'tfidf_lstm':
+                        st.write(f"**Path Vectorizer:** `{model_info.get('vectorizer_path', 'N/A')}`")
+                        st.write(f"**Path Model LSTM:** `{model_info.get('model_path', 'N/A')}`")
+            except Exception as e:
+                st.error(f"Gagal memuat informasi model: {str(e)}")
         else:
-             with st.expander("ℹ️ Model Info"):
-                 st.warning("Detector not initialized.")
+            with st.expander("ℹ️ Informasi Model"):
+                st.warning("Model belum diinisialisasi")
         
         st.markdown("---")
-    
-    # Initialize preprocessing_steps in session state if not exists
-    if 'preprocessing_steps' not in st.session_state:
-        st.session_state.preprocessing_steps = Config.get_app_settings()["preprocessing_defaults"]
-    
-    # Sidebar for preprocessing options
-    with st.sidebar:
-        st.header("⚙️ Preprocessing Options")
         
-        # Update preprocessing steps in session state when changed
-        st.session_state.preprocessing_steps = st.multiselect(
-            "Preprocessing Steps:",
-            ['clean', 'punctuation', 'tokenize', 'stopwords', 'stem'],
+        # Preprocessing options
+        st.header("⚙️ Opsi Preprocessing")
+        
+        # Get available preprocessing steps from config or use defaults
+        available_steps = Config.get_app_settings().get("available_preprocessing_steps", 
+                                                      ['clean', 'punctuation', 'tokenize', 'stopwords', 'stem'])
+        
+        # Update preprocessing steps in session state
+        selected_steps = st.multiselect(
+            "Langkah Preprocessing:",
+            available_steps,
             default=st.session_state.preprocessing_steps
         )
         
-        st.markdown("---")
+        # Update session state if selection changed
+        if selected_steps != st.session_state.preprocessing_steps:
+            st.session_state.preprocessing_steps = selected_steps
+        
         st.markdown("### 📝 Keterangan:")
         st.markdown("""        
         - **clean**: Membersihkan teks (lowercase, hapus URL, email, dll)
@@ -323,22 +354,43 @@ def extract_and_detect(url_input, extractor, preprocessor, detector, history_db,
                 full_text = f"{result['title']} {result['content']}"
                 processed_text = preprocessor.preprocess_pipeline(full_text, preprocessing_steps)
                 st.session_state.preprocessed_text = processed_text
+                print(f"[DEBUG Main] Teks setelah preprocessing: {processed_text[:500]}...")
                 # Gunakan objek detector dari parameter
                 if detector.model_loaded:
                     prediction = detector.predict(processed_text)
                     st.session_state.prediction_result = prediction
                     explanation = detector.explain_prediction(processed_text)
                     st.session_state.explanation = explanation
+                    
+                    # Normalisasi format prediksi
+                    pred = st.session_state.prediction_result
+                    probs = pred['probabilities']
+                    
+                    # Handle perbedaan format (FAKE/REAL vs fake/real)
+                    if 'FAKE' in probs and 'REAL' in probs:
+                        fake_prob = probs['FAKE']
+                        real_prob = probs['REAL']
+                    elif 'fake' in probs and 'real' in probs:
+                        fake_prob = probs['fake']
+                        real_prob = probs['real']
+                    else:
+                        # Fallback jika format tidak dikenali
+                        fake_prob = 0.5
+                        real_prob = 0.5
+                    
+                    # Pastikan prediction dalam format yang konsisten
+                    prediction_label = pred['prediction'].upper()
+                    
                     # Save to history
                     history_record = {
                         'url': url_input,
                         'domain': result['domain'],
                         'title': result['title'],
                         'content': result['content'],
-                        'prediction': st.session_state.prediction_result['prediction'],
-                        'confidence': st.session_state.prediction_result['confidence'],
-                        'fake_probability': st.session_state.prediction_result['probabilities']['fake'],
-                        'real_probability': st.session_state.prediction_result['probabilities']['real'],
+                        'prediction': prediction_label,
+                        'confidence': pred['confidence'],
+                        'fake_probability': fake_prob,
+                        'real_probability': real_prob,
                         'checked_at': datetime.now()
                     }
                     history_db.add_record(history_record)
@@ -407,52 +459,80 @@ def display_results():
                 file_name=f"news_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json"
             )
-            
-        with col3:
-            # Copy to Clipboard
-            if st.button("📋 Copy to Clipboard"):
-                text_to_copy = f"""Title: {data.get('title', '')}
-Source: {data.get('domain', '')}
-Publish Date: {data.get('publish_date', 'N/A')}
-
-Content:
-{data.get('content', '')}
-
-URL: {data.get('url', '')}"""
-                st.session_state.copied_text = text_to_copy
-                st.rerun()
         
-        if 'copied_text' in st.session_state:
-            st.success("✅ Text copied to clipboard!")
-            del st.session_state.copied_text
+        st.divider()
         
-        st.markdown("---")
+        # Create tabs for original and preprocessed content
+        tab1, tab2 = st.tabs(["📝 Original Content", "🔧 Preprocessed Content"])
         
-        # Display content with max height and scroll
-        st.subheader("📝 Content")
-        if data.get('content'):
-            st.markdown(
-                f"""
-                <div style="
-                    max-height: 300px;
-                    overflow-y: auto;
-                    padding: 15px;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                    white-space: pre-wrap;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6;
-                    color: #ffffff;  /* White text color */
-                    background-color: #f9f9f9;
-                ">
-                    {data['content']}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning("No content available to display.")
+        with tab1:
+            st.subheader("Original Content")
+            if data.get('content'):
+                st.markdown(
+                    f"""
+                    <div style="
+                        max-height: 300px;
+                        overflow-y: auto;
+                        padding: 15px;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        margin-bottom: 20px;
+                        white-space: pre-wrap;
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        background-color: #f9f9f9;
+                    ">
+                        {data['content']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+            else:
+                st.warning("No content available to display.")
+        
+        with tab2:
+            st.subheader("Preprocessed Content")
+            if data.get('content'):
+                # Get preprocessed text from session state if available
+                preprocessed_text = st.session_state.get('preprocessed_text')
+                
+                if preprocessed_text:
+                    st.markdown(
+                        f"""
+                        <div style="
+                            max-height: 300px;
+                            overflow-y: auto;
+                            padding: 15px;
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            margin-bottom: 20px;
+                            white-space: pre-wrap;
+                            font-family: 'Courier New', monospace;
+                            line-height: 1.6;
+                            color: #333;
+                            background-color: #f0f8ff;
+                        ">
+                            {preprocessed_text}
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #666; font-style: italic;">
+                            This text has been preprocessed with: {', '.join(st.session_state.get('preprocessing_steps', []))}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Add copy button for preprocessed text
+                    st.download_button(
+                        label="📋 Copy Preprocessed Text",
+                        data=preprocessed_text,
+                        file_name="preprocessed_text.txt",
+                        mime="text/plain"
+                    )
+                else:
+                    st.info("Preprocessed text not available. Please run the detection to see preprocessed content.")
+            else:
+                st.warning("No content available to preprocess.")
         
         # Display prediction if available
         if 'prediction_result' in st.session_state and st.session_state.prediction_result:
@@ -493,16 +573,71 @@ def display_explanation():
     st.markdown("---")
     st.header("🔍 Feature Explanation")
     print("[DEBUG Explanation] Data Explanation:", st.session_state.explanation)
+    
+    # Get preprocessing steps from session state or use default
+    preprocessing_steps = st.session_state.get('preprocessing_steps', 
+        ['clean', 'normalize', 'remove_stopwords', 'stem'])
+    
     col3, col4 = st.columns([2, 1])
     
     with col3:
         st.subheader("Important Words Highlighted")
         full_text = f"{st.session_state.extracted_data['title']} {st.session_state.extracted_data['content']}"
+        
+        # Get preprocessor from session state
+        preprocessor = st.session_state.get('preprocessor')
+        
+        # Show first 2000 characters by default, with option to show more
+        show_full_text = st.checkbox("Show full text", value=False, key="show_full_text")
+        
+        if show_full_text:
+            text_to_show = full_text
+            show_less = "(Showing full text)"
+        else:
+            text_to_show = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
+            show_less = ""
+        
+        # Highlight important words
         highlighted_html = highlight_important_words(
-            full_text[:1000] + "..." if len(full_text) > 1000 else full_text,
-            st.session_state.explanation['important_words']
+            text_to_show,
+            st.session_state.explanation['important_words'],
+            preprocessor=preprocessor,
+            preprocessing_steps=preprocessing_steps
         )
-        st.markdown(highlighted_html, unsafe_allow_html=True)
+        
+        # Display the text with highlighting
+        st.markdown(
+            f"""
+            <div style="
+                max-height: 400px;
+                overflow-y: auto;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                white-space: pre-wrap;
+                line-height: 1.8;
+                background-color: #2d2d2d;  /* Darker background */
+                color: #f0f0f0;  /* Light text color */
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 15px;
+            ">
+                {highlighted_html}
+            </div>
+            <div style="color: #aaa; font-size: 0.9em; margin: 5px 0 15px 5px;">
+                {show_less}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Show a note about preprocessing
+        st.caption("💡 Highlighting shows words that influenced the model's decision. "
+                 "The text is preprocessed in the same way as the model input.")
+        
+        # Show word count info
+        word_count = len(full_text.split())
+        st.caption(f"📊 Total words: {word_count} | Showing: {'all' if show_full_text or len(full_text) <= 2000 else 'first 2000 characters'}")
     
     with col4:
         st.subheader("Word Importance")
@@ -511,7 +646,17 @@ def display_explanation():
             words_df = pd.DataFrame(words)
             if 'weight' in words_df.columns:
                 words_df['weight'] = words_df['weight'].round(3)
+                # Sort by absolute weight for better visualization
+                words_df = words_df.iloc[words_df['weight'].abs().argsort()[::-1]]
             st.dataframe(words_df, hide_index=True)
+            
+            # Add color legend
+            st.markdown("""
+                <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+                    <span style="color: #f00;">🔴</span> Words suggesting fake news<br>
+                    <span style="color: #0a0;">🟢</span> Words suggesting real news
+                </div>
+            """, unsafe_allow_html=True)
         else:
             st.info("Penjelasan fitur tidak tersedia untuk model ini.")
 

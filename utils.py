@@ -40,8 +40,8 @@ def process_batch_urls(urls: List[str], extractor, preprocessor, detector,
                         'domain': extraction_result['domain'],
                         'prediction': prediction_result['prediction'],
                         'confidence': prediction_result['confidence'],
-                        'fake_probability': prediction_result['probabilities']['fake'],
-                        'real_probability': prediction_result['probabilities']['real'],
+                        'fake_probability': prediction_result['probabilities']['FAKE'],
+                        'real_probability': prediction_result['probabilities']['REAL'],
                         'status': 'success'
                     }
                 else:

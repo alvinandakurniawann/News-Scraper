@@ -147,7 +147,7 @@ MIT License
 
 ---
 
-Dikembangkan untuk Tugas Akhir - [Nama Universitas] © 2025
+Dikembangkan untuk Tugas Akhir - TelkomUniversity © 2025
 
 ## 📄 License
 

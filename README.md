@@ -1,164 +1,153 @@
-# Fake News Detector
+# Fake News Detector (ID/EN)
 
-Aplikasi web untuk scraping berita dari dan deteksi fake news menggunakan machine learning.
+Aplikasi web untuk deteksi berita palsu (fake news) menggunakan model TF-IDF + Logistic Regression. Mendukung teks dalam Bahasa Indonesia dan Inggris.
+
+## 🌟 Fitur Utama
+
+- **Multi-language Support**: Deteksi berita dalam Bahasa Indonesia dan Inggris
+- **Model Tunggal**: Menggunakan TF-IDF + Logistic Regression yang telah dioptimalkan
+- **Highlight Kata Kunci**: Menampilkan kata-kata kunci yang berpengaruh dalam keputusan klasifikasi
+- **Visualisasi Interaktif**: Menampilkan confidence score dan probabilitas prediksi
+- **Riwayat Pengecekan**: Menyimpan riwayat pengecekan berita
 
 ## 📁 Struktur Project
 
 ```
-news-scraper-project/
+fake-news-detector/
 │
-├── main.py                    # Main Streamlit application (entry point)
-├── news_extractor.py          # Module untuk ekstraksi berita
-├── text_preprocessor.py       # Module untuk preprocessing teks
-├── fake_news_detector.py      # Module untuk deteksi fake news
-├── database_supabase.py       # Module untuk manajemen database Supabase
-├── config.py                  # Module untuk konfigurasi aplikasi
-├── visualizations.py          # Module untuk visualisasi data
-├── utils.py                   # Module untuk utility functions
-├── requirements.txt           # Daftar dependencies
-├── SUPABASE_SETUP.md         # Panduan setup Supabase
+├── main.py                    # Aplikasi utama Streamlit
+├── text_preprocessor.py       # Preprocessing teks (ID/EN)
+├── tfidf_detector.py         # Model TF-IDF + Logistic Regression
+├── visualizations.py          # Visualisasi hasil deteksi
+├── database_supabase.py       # Koneksi database Supabase
+├── config.py                  # Konfigurasi aplikasi
+├── requirements.txt           # Daftar dependensi
 ├── README.md                 # File ini
-├── setup.py                  # Script setup Python
-├── setup.sh                  # Script setup Unix/Linux
 ├── setup.bat                 # Script setup Windows
-├── .gitignore               # File git ignore
 └── .streamlit/
-    └── secrets.toml.example  # Template untuk kredensial Supabase
+    └── config.toml          # Konfigurasi Streamlit
 ```
 
-## 🚀 Cara Menjalankan
+## 🚀 Cara Menggunakan
 
-### Local Development
+### Persyaratan
+- Python 3.8+
+- pip (package manager)
+- Akun [Supabase](https://supabase.com) (opsional, untuk penyimpanan riwayat)
 
-1. Clone repository ini
-2. Buat environment virtual:
+### Instalasi
+
+1. Clone repository ini:
+   ```bash
+   git clone [repo-url]
+   cd [repo-name]
    ```
+
+2. Buat dan aktifkan environment virtual:
+   ```bash
+   # Windows
    python -m venv venv
-   source venv/bin/activate  # Linux/Mac
-   .\venv\Scripts\activate  # Windows
+   .\venv\Scripts\activate
+   
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
    ```
+
 3. Install dependencies:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
-4. Download NLTK data:
+
+4. Download data NLTK:
+   ```bash
+   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet')"
    ```
-   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
-   ```
+
 5. Jalankan aplikasi:
-   ```
-   streamlit run main.py
-   ```
-
-### Deployment ke Streamlit Cloud
-
-1. Buat akun di [Streamlit Cloud](https://share.streamlit.io/)
-2. Hubungkan ke repository GitHub Anda
-3. Pilih repository ini
-4. Atur pengaturan deployment:
-   - Branch: `main`
-   - Main file path: `main.py`
-5. Klik Deploy
-
-### Deployment ke Platform Lain
-
-Untuk deployment ke platform seperti Heroku, Railway, atau Vercel, pastikan:
-
-1. File `requirements.txt` sudah ada
-2. File `runtime.txt` sudah berisi versi Python
-3. File `Procfile` sudah dikonfigurasi dengan benar
-4. Variabel environment sudah diset (khusus untuk Supabase)
-
-### Manual Setup
-
-1. **Setup Supabase**
-
-   Ikuti panduan lengkap di [SUPABASE_SETUP.md](SUPABASE_SETUP.md) untuk:
-   - Membuat akun dan project Supabase
-   - Membuat tabel database
-   - Mendapatkan kredensial
-
-2. **Konfigurasi Aplikasi**
-
-   ```bash
-   mkdir .streamlit
-   cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-   ```
-
-   Edit `.streamlit/secrets.toml` dengan kredensial Supabase Anda:
-   ```toml
-   SUPABASE_URL = "https://your-project.supabase.co"
-   SUPABASE_KEY = "your-anon-public-key"
-   ```
-
-3. **Install Dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Download NLTK Data**
-
-   ```python
-   import nltk
-   nltk.download('punkt')
-   nltk.download('stopwords')
-   ```
-
-5. **Jalankan Aplikasi**
-
    ```bash
    streamlit run main.py
    ```
 
-## 📋 Fitur Utama
+### Konfigurasi
 
-- **News Extraction**: Ekstraksi otomatis dari Detik, Kompas, Tribun, CNN Indonesia, Liputan6
-- **Text Preprocessing**: Cleaning, tokenization, stopword removal, stemming
-- **Fake News Detection**: Deteksi fake news dengan confidence score
-- **Batch Processing**: Proses multiple URLs sekaligus
-- **Cloud Database**: Menggunakan Supabase PostgreSQL
-- **History Tracking**: Riwayat checking tersimpan di cloud
-- **Analytics Dashboard**: Visualisasi statistik dan trend
-- **Search & Filter**: Cari dan filter hasil berdasarkan domain, prediksi, dll
+1. **Supabase (Opsional)**
+   - Buat file `.streamlit/secrets.toml`
+   - Tambahkan konfigurasi Supabase:
+     ```toml
+     [supabase]
+     url = "your-supabase-url"
+     key = "your-supabase-key"
+     ```
 
-## 🔧 Konfigurasi
+## 🔍 Cara Kerja
 
-### Preprocessing Steps:
-- `clean`: Membersihkan teks (lowercase, hapus URL, email, dll)
-- `punctuation`: Menghapus tanda baca
-- `tokenize`: Memecah teks menjadi kata-kata
-- `stopwords`: Menghapus kata-kata umum
-- `stem`: Mengubah kata ke bentuk dasar
+1. **Input Teks**
+   - Masukkan teks berita yang ingin diperiksa
+   - Atau tempel URL berita (opsional)
 
-### Model Types :
-- TF-IDF + LogReg
-- BERT + LogReg
+2. **Preprocessing**
+   - Pembersihan teks (URL, tanda baca, dll)
+   - Tokenisasi dan normalisasi
+   - Penghapusan stopwords
+   - Stemming (untuk Bahasa Indonesia)
 
-## 🌐 Keuntungan Menggunakan Supabase
+3. **Klasifikasi**
+   - Ekstraksi fitur menggunakan TF-IDF
+   - Prediksi menggunakan model Logistic Regression
+   - Menghitung confidence score
 
-1. **Cloud-Based**: Data tersimpan di cloud, bisa diakses dari mana saja
-2. **Scalable**: Otomatis scale sesuai kebutuhan
-3. **Realtime**: Support realtime updates (optional)
-4. **Secure**: Built-in authentication dan Row Level Security
-5. **Free Tier**: Gratis untuk project kecil-menengah
-6. **PostgreSQL**: Database powerful dengan fitur lengkap
+4. **Visualisasi**
+   - Menampilkan hasil prediksi (Real/Fake)
+   - Confidence score
+   - Kata-kata kunci yang berpengaruh
 
+## 🛠️ Teknologi
 
-## 🛡️ Security
+- **Bahasa Pemrograman**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (opsional)
+- **Deployment**: Streamlit Cloud, Heroku, dll.
 
-- Jangan pernah commit file `.streamlit/secrets.toml`
-- Gunakan environment variables untuk production
-- Enable Row Level Security di Supabase untuk keamanan ekstra
+## 🔧 Preprocessing
 
-## 🤝 Kontribusi
+- **Clean**: Menghapus karakter tidak perlu
+- **Case Folding**: Mengubah ke huruf kecil
+- **Tokenization**: Memecah teks menjadi kata-kata
+- **Stopword Removal**: Menghapus kata umum
+- **Stemming**: Mengubah kata ke bentuk dasarnya
 
-Feel free to contribute dengan:
-- Menambahkan support untuk situs berita lain
-- Implementasi model ML yang real
-- Perbaikan UI/UX
-- Optimasi performa database
-- Bug fixes
+## 📊 Model
+
+- **TF-IDF + Logistic Regression**
+  - Akurasi: > 90%
+  - Support Bahasa Indonesia dan Inggris
+  - Cepat dan ringan
+
+## 🌐 Deployment
+
+Aplikasi dapat di-deploy di:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Platform cloud lainnya
+
+## 🤝 Berkontribusi
+
+Kontribusi terbuka untuk:
+- Perbaikan kode
+- Penambahan fitur
+- Peningkatan akurasi model
+- Terjemahan bahasa
+
+## 📜 Lisensi
+
+MIT License
+
+---
+
+Dikembangkan untuk Tugas Akhir - [Nama Universitas] © 2025
 
 ## 📄 License
 

@@ -507,6 +507,66 @@ Kontribusi terbuka untuk:
 - Perbaikan kode
 - Penambahan fitur
 - Peningkatan akurasi model
+
+## 📄 License
+
+MIT License
+
+</div>
+
+<!-- Indonesian Version -->
+<div id="indonesia" style="display: none;">
+
+# News Scraper & Detektor Berita Palsu
+
+Aplikasi untuk mendeteksi berita palsu menggunakan model machine learning dengan antarmuka Streamlit.
+
+## 🚀 Fitur
+
+- Ekstraksi berita otomatis dari berbagai situs berita
+- Deteksi berita palsu menggunakan model machine learning
+- Dukungan multi-bahasa (Indonesia dan Inggris)
+- Antarmuka pengguna yang interaktif
+- Visualisasi hasil prediksi
+- Riwayat pengecekan
+
+## 🛠️ Teknologi
+
+- **Bahasa Pemrograman**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (opsional)
+- **Deployment**: Streamlit Cloud, Heroku, dll.
+
+## 🔧 Preprocessing
+
+- **Bersihkan**: Menghapus karakter tidak perlu
+- **Case Folding**: Mengubah ke huruf kecil
+- **Tokenisasi**: Memecah teks menjadi kata-kata
+- **Stopword Removal**: Menghapus kata umum
+- **Stemming**: Mengubah kata ke bentuk dasarnya
+
+## 📊 Model
+
+- **TF-IDF + Logistic Regression**
+  - Akurasi: > 90%
+  - Mendukung Bahasa Indonesia dan Inggris
+  - Cepat dan ringan
+
+## 🌐 Deployment
+
+Aplikasi dapat di-deploy di:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Platform cloud lainnya
+
+## 🤝 Berkontribusi
+
+Kontribusi terbuka untuk:
+- Perbaikan kode
+- Penambahan fitur
+- Peningkatan akurasi model
 - Terjemahan bahasa
 
 ## 📄 License

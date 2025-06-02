@@ -393,25 +393,3 @@ MIT License
   };
 </script>
 
-<!-- CSS for better styling -->
-<style>
-  .lang-btn {
-    display: inline-block;
-    padding: 8px 16px;
-    margin: 0 5px;
-    background: #4CAF50;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.3s;
-  }
-  
-  .lang-btn:hover {
-    background: #45a049;
-  }
-  
-  /* Make sure the language selector stays at the top */
-  body > div:first-child {
-    margin-bottom: 2em;
-  }
-</style>

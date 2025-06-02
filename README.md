@@ -352,9 +352,10 @@ MIT License
 </div>
 
 <div align="center">
-  <a href="#english" class="lang-btn" style="padding: 8px 16px; margin: 0 5px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">English</a>
-  <a href="#indonesia" class="lang-btn" style="padding: 8px 16px; margin: 0 5px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">Bahasa Indonesia</a>
+  <a href="#english"><img src="https://img.shields.io/badge/English-4285F4?style=for-the-badge&logo=google-translate&logoColor=white" alt="English"></a>
+  <a href="#indonesian"><img src="https://img.shields.io/badge/Bahasa_Indonesia-FF5722?style=for-the-badge&logo=google-translate&logoColor=white" alt="Bahasa Indonesia"></a>
 </div>
+
 
 
 

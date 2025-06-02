@@ -80,42 +80,34 @@ def highlight_important_words(text: str, important_words: List[Dict], preprocess
         preprocessor: Optional preprocessor instance with preprocess_pipeline method
         preprocessing_steps: List of preprocessing steps to apply (if preprocessor is provided)
     """
-    # Keep track of original text for highlighting
-    original_text = text
+    if not important_words or not text:
+        return text
     
-    # Preprocess the text if preprocessor is available
-    if preprocessor and preprocessing_steps:
-        # Preprocess the text in the same way as the model input
-        processed_text = preprocessor.preprocess_pipeline(text, preprocessing_steps)
-        print(f"[DEBUG] Using preprocessed text for highlighting (length: {len(processed_text)})")
-    else:
-        # Fallback to original text if no preprocessor provided
-        processed_text = original_text
-        print("[DEBUG] Using original text for highlighting")
-    
+    # Check if the text already contains HTML spans to avoid double-highlighting
+    if '<span style="background-color:' in text:
+        return text
+        
     # Create a mapping of words to their highlighting info (case-insensitive)
     word_highlights = {}
     for word_info in important_words:
-        word = word_info['word'].strip()
-        if not word:  # Skip empty words
+        word = word_info.get('word', '').strip()
+        if not word or len(word) < 2:  # Skip empty or very short words
             continue
             
         # Determine color based on weight
         weight = word_info.get('weight', 0)
         if weight > 0:
             # Traffic light red for fake news indicators
-            # Use a minimum opacity of 0.3 for better visibility
             opacity = max(0.3, min(abs(weight) * 2.0, 0.9))
-            color = f"rgba(255, 0, 0, {opacity})"  # Bright traffic light red
+            color = f"rgba(255, 0, 0, {opacity})"  # Red for fake indicators
             text_color = "#ffffff"  # White text for better contrast
         else:
             # Traffic light green for real news indicators
-            # Use a minimum opacity of 0.3 for better visibility
             opacity = max(0.3, min(abs(weight) * 2.0, 0.9))
-            color = f"rgba(0, 255, 0, {opacity})"  # Bright traffic light green
+            color = f"rgba(0, 255, 0, {opacity})"  # Green for real indicators
             text_color = "#000000"  # Black text for better contrast
         
-        # Store both original and lowercase versions for matching
+        # Store word info with original case for exact matching
         word_highlights[word.lower()] = {
             'original': word,
             'color': color,
@@ -123,79 +115,51 @@ def highlight_important_words(text: str, important_words: List[Dict], preprocess
             'weight': weight
         }
     
-    # Split text into tokens while keeping track of their positions
-    tokens = []
-    word_pattern = re.compile(r'\b(\w+)\b')
-    pos = 0
+    # If no valid words to highlight, return original text
+    if not word_highlights:
+        return text
     
-    while pos < len(processed_text):
-        # Find the next word boundary
-        match = word_pattern.search(processed_text, pos)
-        if not match:
-            # No more words, add the remaining text
-            tokens.append((processed_text[pos:], False))
-            break
-            
+    # Create a regex pattern to match any of the important words (case-insensitive)
+    # Sort by length in descending order to match longer words first (e.g., 'new york' before 'new')
+    words_sorted = sorted(word_highlights.keys(), key=len, reverse=True)
+    
+    # Create a pattern that matches whole words only (using word boundaries)
+    pattern_str = r'(?<![\w-])(' + '|'.join(map(re.escape, words_sorted)) + r')(?![\w-])'
+    pattern = re.compile(pattern_str, re.IGNORECASE)
+    
+    # Track which parts of the text we've already processed
+    result_parts = []
+    last_end = 0
+    
+    # Find all matches and build the result
+    for match in pattern.finditer(text):
         # Add text before the match
-        if match.start() > pos:
-            tokens.append((processed_text[pos:match.start()], False))
-            
-        # Add the matched word
-        word = match.group(1)
-        tokens.append((word, True))
-        pos = match.end()
-    
-    # Process each token
-    result = []
-    debug_words = {'real', 'business'}
-    
-    # Print all important words for debugging
-    print("\n[DEBUG] Important words to highlight:", [word for word in word_highlights.keys()])
-    
-    for token, is_word in tokens:
-        if not is_word:
-            result.append(token)
-            continue
-            
-        # Check if this word (case-insensitive) is in our important words
-        lower_word = token.lower()
+        result_parts.append(text[last_end:match.start()])
         
-        # Debug logging for specific words
-        if lower_word in debug_words:
-            print(f"[DEBUG] Checking word: '{token}' (lower: '{lower_word}')")
-            print(f"[DEBUG] Word in highlights: {lower_word in word_highlights}")
-            if lower_word in word_highlights:
-                print(f"[DEBUG] Word info: {word_highlights[lower_word]}")
+        # Get the matched word and its lowercase version
+        matched_word = match.group(1)
+        lower_word = matched_word.lower()
         
+        # Add the highlighted word
         if lower_word in word_highlights:
             highlight = word_highlights[lower_word]
-            # Use the original casing from the word_highlights if available
-            display_word = highlight.get('original', token)
-            # Force the color to be fully opaque for better visibility
-            color = highlight["color"]
-            if 'rgba' in color:
-                # Extract RGB values and force alpha to 0.8 for better visibility
-                parts = color[5:-1].split(',')
-                if len(parts) == 4:  # If it's an rgba color
-                    r, g, b, _ = parts
-                    color = f'rgba({r},{g},{b},0.8)'  # Fixed high opacity for visibility
-            
+            # Use the original word's case from the text
+            display_word = matched_word
             highlighted = (
-                f'<span style="'
-                f'background-color: {color}; '
-                f'color: {highlight["text_color"]}; '
-                f'padding: 1px 3px; '
-                f'border-radius: 3px; '
-                f'margin: 0 1px; '
-                f'display: inline-block; '
-                f'line-height: 1.5; '
-                f'font-weight: 500; '
-                f'box-shadow: 0 1px 2px rgba(0,0,0,0.3);'
-                f'" class="highlight-word">{display_word}</span>'
+                f'<span style="background-color: {highlight["color"]}; '
+                f'color: {highlight["text_color"]}; padding: 1px 3px; border-radius: 3px; '
+                f'margin: 0 1px; display: inline-block; line-height: 1.5; font-weight: 500; '
+                f'box-shadow: 0 1px 2px rgba(0,0,0,0.3);" class="highlight-word">'
+                f'{display_word}</span>'
             )
-            result.append(highlighted)
+            result_parts.append(highlighted)
         else:
-            result.append(token)
+            result_parts.append(matched_word)
+            
+        last_end = match.end()
     
-    # Join all tokens back together
-    return ''.join(result)
+    # Add any remaining text
+    result_parts.append(text[last_end:])
+    
+    # Join all parts together
+    return ''.join(result_parts)

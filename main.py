@@ -653,19 +653,24 @@ def display_batch_results(results, history_db):
                         unsafe_allow_html=True
                     )
                     
-                    # Confidence gauge
+                    # Generate unique keys based on URL and chart type
+                    url_hash = str(hash(result.get('url', '')))
+                    
+                    # Confidence gauge with unique key
                     st.plotly_chart(
                         create_confidence_gauge(confidence),
-                        use_container_width=True
+                        use_container_width=True,
+                        key=f"gauge_{url_hash}"
                     )
                     
-                    # Probability distribution
+                    # Probability distribution with unique key
                     st.plotly_chart(
                         create_probability_chart({
                             'FAKE': result.get('fake_probability', 0),
                             'REAL': result.get('real_probability', 0)
                         }),
-                        use_container_width=True
+                        use_container_width=True,
+                        key=f"prob_{url_hash}"
                     )
                 else:
                     st.error(f"Error processing URL: {result.get('error', 'Unknown error')}")
@@ -693,13 +698,67 @@ def display_batch_results(results, history_db):
                             use_container_width=True
                         )
                         
+                        # Combine title and content for highlighting
+                        full_text = f"{result.get('title', '')} {result.get('content', '')}"
+                        
+                        # Add 'Show more' functionality
+                        show_full_text = st.checkbox(
+                            "Show full text", 
+                            value=False, 
+                            key=f"show_full_{result['url']}"
+                        )
+                        
+                        if show_full_text:
+                            text_to_show = full_text
+                            show_less = "(Showing full text)"
+                        else:
+                            text_to_show = full_text[:2000] + ("..." if len(full_text) > 2000 else "")
+                            show_less = ""
+                        
                         # Display highlighted text
                         st.markdown("### Text with Important Words Highlighted")
+                        
+                        # Get preprocessor from session state
+                        preprocessor = st.session_state.get('preprocessor')
+                        preprocessing_steps = st.session_state.get('preprocessing_steps', [])
+                        
+                        # Highlight important words
                         highlighted = highlight_important_words(
-                            result['content'],
-                            important_words
+                            text_to_show,
+                            important_words,
+                            preprocessor=preprocessor,
+                            preprocessing_steps=preprocessing_steps
                         )
-                        st.markdown(highlighted, unsafe_allow_html=True)
+                        
+                        # Display the text with highlighting
+                        st.markdown(
+                            f"""
+                            <div style="
+                                max-height: 400px;
+                                overflow-y: auto;
+                                padding: 20px;
+                                border: 1px solid #e0e0e0;
+                                border-radius: 8px;
+                                margin-bottom: 10px;
+                                white-space: pre-wrap;
+                                line-height: 1.8;
+                                background-color: #2d2d2d;
+                                color: #f0f0f0;
+                                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                                font-size: 15px;
+                            ">
+                                {highlighted}
+                            </div>
+                            <div style="color: #aaa; font-size: 0.9em; margin: 5px 0 15px 5px;">
+                                {show_less}
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Show word count info
+                        word_count = len(full_text.split())
+                        st.caption(f"📊 Total words: {word_count} | Showing: {'all' if show_full_text or len(full_text) <= 2000 else 'first 2000 characters'}")
     
     # Save successful results to history
     results_df = pd.DataFrame([r for r in results if r.get('status') == 'success'])

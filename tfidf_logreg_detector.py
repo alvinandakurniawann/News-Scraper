@@ -107,14 +107,19 @@ class TfidfLogregDetector:
                 # Cek urutan kelas di model jika perlu: self.model.classes_
                 fake_prob = probabilities[0][1]
                 real_prob = probabilities[0][0]
+                prediction = 'FAKE' if predictions[0] == 1 else 'REAL'
+                
+                # Get important words for this prediction
+                explanation = self.explain_prediction(text)
                 
                 return {
-                    'prediction': 'FAKE' if predictions[0] == 1 else 'REAL',
+                    'prediction': prediction,
                     'confidence': max(fake_prob, real_prob),
                     'probabilities': {
                         'fake': float(fake_prob),
                         'real': float(real_prob)
                     },
+                    'important_words': explanation.get('important_words', []),
                     'model_info': self.model_info
                 }
             else:
@@ -125,6 +130,9 @@ class TfidfLogregDetector:
                     fake_prob = prob[1]
                     real_prob = prob[0]
                     
+                    # Get important words for this prediction
+                    explanation = self.explain_prediction(texts[i])
+                    
                     results.append({
                         'text': texts[i],
                         'prediction': 'FAKE' if pred == 1 else 'REAL',
@@ -133,6 +141,7 @@ class TfidfLogregDetector:
                             'fake': float(fake_prob),
                             'real': float(real_prob)
                         },
+                        'important_words': explanation.get('important_words', []),
                         'model_info': self.model_info
                     })
                 return results

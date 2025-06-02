@@ -356,40 +356,5 @@ MIT License
   <a href="#indonesia" class="lang-btn" style="padding: 8px 16px; margin: 0 5px; background: #4CAF50; color: white; text-decoration: none; border-radius: 4px;">Bahasa Indonesia</a>
 </div>
 
-<script>
-  // Show language based on priority: URL hash > saved preference > default to English
-  if (window.location.hash && ['english', 'indonesia'].includes(window.location.hash.substring(1))) {
-    showLanguage(window.location.hash.substring(1));
-  } else {
-    showLanguage('english'); // Default to English
-  }
-  
-  // Add click handlers to language buttons
-  document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const lang = this.getAttribute('href').substring(1);
-      showLanguage(lang);
-    });
-  });
-  
-  function showLanguage(lang) {
-    if (lang === 'english') {
-      document.getElementById('indonesian').style.display = 'none';
-    } else if (savedLang && ['english', 'indonesia'].includes(savedLang)) {
-      showLanguage(savedLang);
-    } else {
-      showLanguage('english'); // Default to English
-    }
-    
-    // Add click handlers to language buttons
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const lang = this.getAttribute('href').substring(1);
-        showLanguage(lang);
-      });
-    });
-  };
-</script>
+
 

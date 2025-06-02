@@ -11,7 +11,7 @@ nltk==3.8.1
 # Text processing (Indonesia)
 Sastrawi==1.0.1
 
-# Web scraping (if needed)
+# Web scraping
 beautifulsoup4==4.12.3
 requests==2.31.0
 
@@ -19,15 +19,7 @@ requests==2.31.0
 plotly==5.13.0
 plotly-express==0.4.1
 
-# Deep Learning
-tensorflow==2.15.0
-keras==2.15.0
-h5py==3.13.0
-torch==2.0.1
-transformers==4.30.2
-
 # Other dependencies
-protobuf>=3.20.3,<4.0.0
 python-dotenv>=1.0.0
 
 # Database (optional)

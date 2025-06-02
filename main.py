@@ -14,12 +14,9 @@ from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import custom modules
-print("[DEBUG Main] Sebelum import custom modules")
 from news_extractor import NewsExtractor
 from text_preprocessor import TextPreprocessor
 from tfidf_logreg_detector import TfidfLogregDetector
-from bert_logreg_detector import BertLogregDetector
-from tfidf_lstm_detector import TfidfLstmDetector
 from database_supabase import HistoryDatabase
 from config import Config
 from visualizations import (
@@ -28,14 +25,6 @@ from visualizations import (
     highlight_important_words
 )
 from utils import process_batch_urls
-
-# Tambahan untuk BERT vectorizer
-try:
-    from transformers import AutoTokenizer, AutoModel
-    import torch
-    BERT_AVAILABLE = True
-except ImportError:
-    BERT_AVAILABLE = False
 
 
 def main():
@@ -65,7 +54,7 @@ def main():
     
     # Initialize session state for preprocessing steps if not exists
     if 'preprocessing_steps' not in st.session_state:
-        st.session_state.preprocessing_steps = ['clean', 'normalize', 'remove_stopwords', 'stem']
+        st.session_state.preprocessing_steps = ['clean', 'punctuation', 'tokenize', 'stopwords', 'stem']
     
     # Initialize components
     extractor = NewsExtractor()
@@ -82,24 +71,6 @@ def main():
     def create_detector(model_info):
         if model_info["type"] == "tfidf":
             return TfidfLogregDetector(model_path=model_info["path"])
-        elif model_info["type"] == "bert+logreg":
-            # Asumsikan path model_path di config adalah path file logreg
-            # Path embeddings perlu diambil dari tempat lain jika ada, atau dihapus jika tidak perlu lagi
-            # Untuk sementara, kita hardcode atau ambil dari model_config jika ada
-            embeddings_path = model_config.get('bert_embeddings_path', None) # Sesuaikan jika path embeddings ada di config
-            # Jika path embeddings tidak di config, bisa juga diambil dari model_files di ModelLoader (tapi itu melanggar pemisahan)
-            # Atau, anggap BERT+LogReg hanya butuh model_path logreg dan vectorizer BERT on-the-fly
-            # Karena kita sudah punya vectorizer BERT di kelas BertLogregDetector, kita hanya butuh path logreg
-            return BertLogregDetector(model_path=model_info["path"])
-        elif model_info["type"] == "tfidf_lstm":
-             # Ambil path vectorizer dan model dari model_info
-             vectorizer_path = model_info.get("vectorizer_path")
-             model_path = model_info.get("model_path")
-             if vectorizer_path and model_path:
-                 return TfidfLstmDetector(vectorizer_path=vectorizer_path, model_path=model_path)
-             else:
-                 st.error(f"Konfigurasi model TF-IDF+LSTM tidak lengkap: path vectorizer atau model tidak ditemukan.")
-                 return None
         else:
             st.error(f"Tipe model tidak didukung: {model_info['type']}")
             return None
@@ -167,84 +138,19 @@ def setup_sidebar():
     with st.sidebar:
         st.header("⚙️ Settings")
         
-        # Model selection
-        model_options = [model["name"] for model in st.session_state.model_config["available_models"]]
+        # Display model info - only TF-IDF model is available
+        selected_model_info = st.session_state.model_config["available_models"][0]  # Get first (and only) model
+        st.session_state.current_model = selected_model_info
         
-        # Set default model index
-        default_index = 0
-        if st.session_state.current_model and 'name' in st.session_state.current_model:
-            try:
-                default_index = model_options.index(st.session_state.current_model["name"])
-            except ValueError:
-                pass
-                
-        selected_model_name = st.selectbox(
-            "Select Model:",
-            model_options,
-            index=default_index
-        )
-        
-        # Update model if selection changed
-        if st.session_state.current_model.get("name") != selected_model_name:
-            try:
-                selected_model_info = next(m for m in st.session_state.model_config["available_models"] 
-                                   if m["name"] == selected_model_name)
-                
-                # Create new detector instance based on selected model type
-                new_detector = None
-                if selected_model_info["type"] == "tfidf":
-                    new_detector = TfidfLogregDetector(model_path=selected_model_info["path"])
-                elif selected_model_info["type"] == "bert+logreg":
-                    embeddings_path = st.session_state.model_config.get('bert_embeddings_path', None)
-                    new_detector = BertLogregDetector(model_path=selected_model_info["path"], 
-                                                    embeddings_path=embeddings_path)
-                elif selected_model_info["type"] == "tfidf_lstm":
-                    vectorizer_path = selected_model_info.get("vectorizer_path")
-                    model_path = selected_model_info.get("model_path")
-                    if vectorizer_path and model_path:
-                        new_detector = TfidfLstmDetector(vectorizer_path=vectorizer_path, 
-                                                     model_path=model_path)
-                    else:
-                        st.error("Konfigurasi model TF-IDF+LSTM tidak lengkap")
-                else:
-                    st.error(f"Tipe model tidak didukung: {selected_model_info['type']}")
-                
-                if new_detector and new_detector.model_loaded:
-                    st.session_state.detector = new_detector
-                    st.session_state.current_model = selected_model_info
-                    st.success(f"Model berhasil diubah ke: {selected_model_info['name']}")
-                elif new_detector:
-                    st.error(f"Gagal memuat model: {selected_model_info['name']}")
-                    
-            except Exception as e:
-                st.error(f"Terjadi kesalahan saat mengganti model: {str(e)}")
-        
-        st.markdown("---")
-        
-        # Display current model info
-        if 'detector' in st.session_state and st.session_state.detector:
-            try:
+        # Display model information
+        with st.expander("ℹ️ Informasi Model"):
+            if 'detector' in st.session_state and st.session_state.detector:
                 model_info = st.session_state.detector.get_model_info()
-                with st.expander("ℹ️ Informasi Model"):
-                    st.write(f"**Nama:** {model_info.get('name', 'N/A')}")
-                    st.write(f"**Tipe:** {model_info.get('type', 'N/A')}")
-                    status_icon = "✅" if st.session_state.detector.model_loaded else "❌"
-                    st.write(f"**Status:** {status_icon} {model_info.get('status', 'Unknown')}")
-                    
-                    # Tampilkan path yang sesuai dengan tipe model
-                    if model_info['type'] == 'tfidf':
-                        st.write(f"**Path Model:** `{model_info.get('path', 'N/A')}`")
-                    elif model_info['type'] == 'bert+logreg':
-                        st.write(f"**Path Model LogReg:** `{model_info.get('logreg_path', 'N/A')}`")
-                        if model_info.get('embeddings_path'):
-                            st.write(f"**Path Embeddings:** `{model_info['embeddings_path']}`")
-                    elif model_info['type'] == 'tfidf_lstm':
-                        st.write(f"**Path Vectorizer:** `{model_info.get('vectorizer_path', 'N/A')}`")
-                        st.write(f"**Path Model LSTM:** `{model_info.get('model_path', 'N/A')}`")
-            except Exception as e:
-                st.error(f"Gagal memuat informasi model: {str(e)}")
-        else:
-            with st.expander("ℹ️ Informasi Model"):
+                st.write(f"**Nama:** {model_info.get('name', 'TF-IDF + Logistic Regression')}")
+                st.write(f"**Tipe:** TF-IDF + Logistic Regression")
+                st.write("**Status:** ✅ Loaded")
+                st.write(f"**Path Model:** `{model_info.get('path', 'N/A')}`")
+            else:
                 st.warning("Model belum diinisialisasi")
         
         st.markdown("---")
@@ -890,24 +796,6 @@ def display_analytics(history_df):
         title='Top 10 Domains by Fake News Rate'
     )
     st.plotly_chart(fig_fake_rate, use_container_width=True)
-
-
-# Inisialisasi tokenizer dan model BERT default (bert-base-uncased)
-if BERT_AVAILABLE:
-    bert_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-    bert_model = AutoModel.from_pretrained("bert-base-uncased")
-else:
-    bert_tokenizer = None
-    bert_model = None
-
-def bert_vectorize(text):
-    if not BERT_AVAILABLE:
-        raise RuntimeError("transformers/torch belum terinstall. Install dengan: pip install transformers torch")
-    inputs = bert_tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
-    with torch.no_grad():
-        outputs = bert_model(**inputs)
-        pooled = outputs.last_hidden_state[:, 0, :]  # [CLS] token
-    return pooled.numpy().squeeze()
 
 
 if __name__ == "__main__":

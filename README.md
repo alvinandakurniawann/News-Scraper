@@ -1,10 +1,245 @@
-# Fake News Detector (ID/EN)
+# Fake News Detector
+
+<div align="center">
+  <a href="#english"><img src="https://img.shields.io/badge/English-4285F4?style=for-the-badge&logo=google-translate&logoColor=white" alt="English"></a>
+  <a href="#indonesian"><img src="https://img.shields.io/badge/Bahasa_Indonesia-FF5722?style=for-the-badge&logo=google-translate&logoColor=white" alt="Bahasa Indonesia"></a>
+</div>
+
+---
+
+<div id="english">
+
+## 🌟 About
+
+A web application for detecting fake news using TF-IDF + Logistic Regression model. Supports text in both English and Indonesian.
+
+## 🚀 Features
+
+- **Multi-language Support**: Detect news in Indonesian and English
+- **Single Optimized Model**: Uses optimized TF-IDF + Logistic Regression
+- **Keyword Highlighting**: Shows influential keywords in classification
+- **Interactive Visualization**: Displays confidence scores and prediction probabilities
+- **Check History**: Saves news checking history
+
+## 📦 Installation
+
+### Prerequisites
+- Python 3.8+
+- pip (package manager)
+- [Supabase](https://supabase.com) account (optional, for history storage)
+
+### Installation Steps
+
+1. Clone the repository:
+   ```bash
+   git clone [repo-url]
+   cd [repo-name]
+   ```
+
+2. Create and activate a virtual environment:
+   ```bash
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Download NLTK data:
+   ```bash
+   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet')"
+   ```
+
+5. Run the application:
+   ```bash
+   streamlit run main.py
+   ```
+
+## ⚙️ Configuration
+
+### Supabase (Optional)
+1. Create a `.streamlit/secrets.toml` file
+2. Add your Supabase configuration:
+   ```toml
+   [supabase]
+   url = "your-supabase-url"
+   key = "your-supabase-key"
+   ```
+
+## 🛠️ Technologies
+
+- **Programming Language**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (optional)
+- **Deployment**: Streamlit Cloud, Heroku, etc.
+
+## 🔧 Preprocessing
+
+- **Clean**: Remove unnecessary characters
+- **Case Folding**: Convert to lowercase
+- **Tokenization**: Split text into words
+- **Stopword Removal**: Remove common words
+- **Stemming**: Convert words to their base form
+
+## 📊 Model
+
+- **TF-IDF + Logistic Regression**
+  - Accuracy: > 90%
+  - Supports English and Indonesian
+  - Fast and lightweight
+
+## 🌐 Deployment
+
+Application can be deployed on:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Other cloud platforms
+
+## 🤝 Contributing
+
+Contributions are welcome for:
+- Code improvements
+- New features
+- Model accuracy improvements
+- Language translations
+
+## 📄 License
+
+MIT License
+
+---
+
+Developed for Final Project - TelkomUniversity © 2025
+
+</div>
+
+<div id="indonesian" style="display: none;">
+
+## 🌟 Tentang
 
 Aplikasi web untuk deteksi berita palsu (fake news) menggunakan model TF-IDF + Logistic Regression. Mendukung teks dalam Bahasa Indonesia dan Inggris.
 
+## 🚀 Fitur Utama
+
+- **Dukungan Multi-bahasa**: Deteksi berita dalam Bahasa Indonesia dan Inggris
+- **Model Tunggal**: Menggunakan TF-IDF + Logistic Regression yang telah dioptimalkan
+- **Highlight Kata Kunci**: Menampilkan kata-kata kunci yang berpengaruh dalam keputusan klasifikasi
+- **Visualisasi Interaktif**: Menampilkan confidence score dan probabilitas prediksi
+- **Riwayat Pengecekan**: Menyimpan riwayat pengecekan berita
+
+## 📦 Instalasi
+
+### Persyaratan
+- Python 3.8+
+- pip (package manager)
+- Akun [Supabase](https://supabase.com) (opsional, untuk penyimpanan riwayat)
+
+### Langkah-langkah Instalasi
+
+1. Clone repository ini:
+   ```bash
+   git clone [repo-url]
+   cd [repo-name]
+   ```
+
+2. Buat dan aktifkan environment virtual:
+   ```bash
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
+   
+   # Linux/Mac
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependensi:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Download data NLTK:
+   ```bash
+   python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet')"
+   ```
+
+5. Jalankan aplikasi:
+   ```bash
+   streamlit run main.py
+   ```
+
+## ⚙️ Konfigurasi
+
+### Supabase (Opsional)
+1. Buat file `.streamlit/secrets.toml`
+2. Tambahkan konfigurasi Supabase:
+   ```toml
+   [supabase]
+   url = "your-supabase-url"
+   key = "your-supabase-key"
+   ```
+
+## 🛠️ Teknologi
+
+- **Bahasa Pemrograman**: Python 3.8+
+- **Machine Learning**: Scikit-learn, NLTK, Sastrawi
+- **Web Framework**: Streamlit
+- **Database**: Supabase (opsional)
+- **Deployment**: Streamlit Cloud, Heroku, dll.
+
+## 🔧 Preprocessing
+
+- **Bersihkan**: Menghapus karakter tidak perlu
+- **Case Folding**: Mengubah ke huruf kecil
+- **Tokenisasi**: Memecah teks menjadi kata-kata
+- **Stopword Removal**: Menghapus kata umum
+- **Stemming**: Mengubah kata ke bentuk dasarnya
+
+## 📊 Model
+
+- **TF-IDF + Logistic Regression**
+  - Akurasi: > 90%
+  - Mendukung Bahasa Indonesia dan Inggris
+  - Cepat dan ringan
+
+## 🌐 Deployment
+
+Aplikasi dapat di-deploy di:
+- Streamlit Cloud
+- Heroku
+- Railway
+- Platform cloud lainnya
+
+## 🤝 Berkontribusi
+
+Kontribusi terbuka untuk:
+- Perbaikan kode
+- Penambahan fitur
+- Peningkatan akurasi model
+- Terjemahan bahasa
+
+## 📜 Lisensi
+
+MIT License
+
+---
+
+Dikembangkan untuk Tugas Akhir - TelkomUniversity © 2025
+
+</div>
+
 ## 🌟 Fitur Utama
 
-- **Multi-language Support**: Deteksi berita dalam Bahasa Indonesia dan Inggris
+- **Dukungan Multi-bahasa**: Deteksi berita dalam Bahasa Indonesia dan Inggris
 - **Model Tunggal**: Menggunakan TF-IDF + Logistic Regression yang telah dioptimalkan
 - **Highlight Kata Kunci**: Menampilkan kata-kata kunci yang berpengaruh dalam keputusan klasifikasi
 - **Visualisasi Interaktif**: Menampilkan confidence score dan probabilitas prediksi

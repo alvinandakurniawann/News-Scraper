@@ -33,15 +33,22 @@ def process_batch_urls(urls: List[str], extractor, preprocessor, detector,
                     # Predict
                     prediction_result = detector.predict(processed_text)
                     
+                    # Get important words if available
+                    important_words = []
+                    if 'important_words' in prediction_result:
+                        important_words = prediction_result['important_words']
+                    
                     # Combine results
                     result = {
                         'url': url,
                         'title': extraction_result['title'],
+                        'content': extraction_result.get('content', ''),
                         'domain': extraction_result['domain'],
                         'prediction': prediction_result['prediction'],
                         'confidence': prediction_result['confidence'],
                         'fake_probability': prediction_result['probabilities']['fake'],
                         'real_probability': prediction_result['probabilities']['real'],
+                        'important_words': important_words,
                         'status': 'success'
                     }
                 else:

@@ -610,7 +610,7 @@ def batch_processing_tab(extractor, preprocessor, history_db, preprocessing_step
 
 def display_batch_results(results, history_db):
     """Display batch processing results"""
-    st.subheader("Batch Results")
+    st.subheader("📊 Batch Results")
     
     # Summary metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -629,18 +629,100 @@ def display_batch_results(results, history_db):
     with col4:
         st.metric("Average Confidence", f"{avg_confidence:.2%}")
     
-    # Results table
-    results_df = pd.DataFrame(results)
-    st.dataframe(results_df, hide_index=True)
+    # Display detailed results for each URL
+    for idx, result in enumerate(results, 1):
+        with st.expander(f"{idx}. {result.get('title', 'No title')}", expanded=False):
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                # Display URL and domain
+                st.markdown(f"**URL:** [{result.get('url', 'N/A')}]({result.get('url', '')})")
+                st.markdown(f"**Domain:** {result.get('domain', 'N/A')}")
+                
+                # Display prediction and confidence
+                if result.get('status') == 'success':
+                    prediction = result.get('prediction', 'UNKNOWN')
+                    confidence = result.get('confidence', 0)
+                    
+                    # Prediction badge
+                    pred_color = "red" if prediction == "FAKE" else "green"
+                    st.markdown(
+                        f"<div style='background-color:{pred_color}20; padding: 10px; border-radius: 5px; margin: 10px 0;'>"
+                        f"<h3 style='color:{pred_color}; margin:0;'>Prediction: {prediction}</h3>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+                    
+                    # Confidence gauge
+                    st.plotly_chart(
+                        create_confidence_gauge(confidence),
+                        use_container_width=True
+                    )
+                    
+                    # Probability distribution
+                    st.plotly_chart(
+                        create_probability_chart({
+                            'FAKE': result.get('fake_probability', 0),
+                            'REAL': result.get('real_probability', 0)
+                        }),
+                        use_container_width=True
+                    )
+                else:
+                    st.error(f"Error processing URL: {result.get('error', 'Unknown error')}")
+            
+            with col2:
+                if result.get('status') == 'success' and 'content' in result:
+                    # Display important words if available
+                    if 'important_words' in result:
+                        st.markdown("### Important Words")
+                        important_words = result['important_words']
+                        
+                        # Display word importance table
+                        words_df = pd.DataFrame(important_words)
+                        words_df['weight'] = words_df['weight'].round(4)
+                        st.dataframe(
+                            words_df,
+                            column_config={
+                                "word": "Word",
+                                "weight": st.column_config.NumberColumn(
+                                    "Importance",
+                                    format="%.4f"
+                                )
+                            },
+                            hide_index=True,
+                            use_container_width=True
+                        )
+                        
+                        # Display highlighted text
+                        st.markdown("### Text with Important Words Highlighted")
+                        highlighted = highlight_important_words(
+                            result['content'],
+                            important_words
+                        )
+                        st.markdown(highlighted, unsafe_allow_html=True)
     
     # Save successful results to history
-    for result in results:
-        if result.get('status') == 'success':
+    results_df = pd.DataFrame([r for r in results if r.get('status') == 'success'])
+    if not results_df.empty:
+        st.subheader("Summary Table")
+        st.dataframe(results_df[['url', 'domain', 'prediction', 'confidence']], hide_index=True)
+        
+        # Download results
+        csv = results_df.to_csv(index=False)
+        st.download_button(
+            label="📥 Download Results CSV",
+            data=csv,
+            file_name=f"batch_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
+        
+        # Save to history database
+        for _, result in results_df.iterrows():
             history_record = {
                 'url': result['url'],
                 'domain': result['domain'],
                 'title': result['title'],
-                'content': '',  # Not storing full content for batch
+                'content': result.get('content', ''),
                 'prediction': result['prediction'],
                 'confidence': result['confidence'],
                 'fake_probability': result['fake_probability'],
@@ -648,15 +730,6 @@ def display_batch_results(results, history_db):
                 'checked_at': datetime.now()
             }
             history_db.add_record(history_record)
-    
-    # Download results
-    csv = results_df.to_csv(index=False)
-    st.download_button(
-        label="📥 Download Results CSV",
-        data=csv,
-        file_name=f"batch_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv"
-    )
 
 
 def history_tab(history_db):
